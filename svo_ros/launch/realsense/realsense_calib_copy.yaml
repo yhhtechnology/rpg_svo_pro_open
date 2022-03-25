@@ -1,0 +1,74 @@
+label: "realsense"
+id: 412eab8e4058621f7036b5e765dfe812
+cameras:
+- camera:
+    label: cam0
+    id: 54812562fa109c40fe90b29a59dd7798
+    line-delay-nanoseconds: 0
+    image_height: 800
+    image_width: 848
+    type: pinhole
+    intrinsics:
+      cols: 1
+      rows: 4
+      data: [285.500488, 285.668304, 424.989502, 401.512390]
+    distortion:
+      type: equidistant
+      parameters:
+        cols: 1
+        rows: 4
+        data: [-0.006343, 0.042279, -0.039584, 0.006701]
+  T_B_C:
+    cols: 4
+    rows: 4
+    data: [-0.99994183, 0.00130309, 0.01071112, 1.07000023e-02,
+           -0.00128741, -0.99999809, 0.00147028, 0.00000000e+0,
+           0.01071301, 0.00145641, 0.99994159, -4.36557457e-11,
+           0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
+- camera:
+    label: cam1
+    id: 54812562fa109c40fe90b29a59dd7723
+    line-delay-nanoseconds: 0
+    image_height: 800
+    image_width: 848
+    type: pinhole
+
+    intrinsics:
+      cols: 1
+      rows: 4
+      data: [286.062897, 286.191406, 422.424988, 400.828003]
+    distortion:
+      type: equidistant
+      parameters:
+        cols: 1
+        rows: 4
+        data: [-0.003504, 0.036342, -0.034210, 0.004926]
+  T_B_C:
+    cols: 4
+    rows: 4
+    data: [-0.99994272, 0.00653008, 0.00847716, -0.05313003,
+           -0.00655806, -0.99997312, -0.00327809, -0.00032511,
+           0.00845553, -0.00333349, 0.99995869, 0.00011803,
+           0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
+
+imu_params:
+  delay_imu_cam: 0.046541351789811954
+  max_imu_delta_t: 0.01
+  acc_max: 176.0
+  omega_max: 30
+  sigma_omega_c: 0.0019238536947805349
+  sigma_acc_c: 0.021741634080561345
+  sigma_omega_bias_c: 4.999999987376214e-07
+  sigma_acc_bias_c: 9.999999747378752e-05
+  sigma_integration: 0.0
+  g: 9.802
+  imu_rate: 200
+
+imu_initialization:
+  velocity: [0.0, 0, 0.0]
+  omega_bias: [0.0016130382427945733, 0.0005493906210176647, 0.0017991834320127964]
+  acc_bias: [-0.030231572687625885, -0.18798527121543884, -0.06560933589935303]
+  velocity_sigma: 1.0
+  omega_bias_sigma: 4.999999987376214e-07
+  acc_bias_sigma: 9.999999747378752e-05
+

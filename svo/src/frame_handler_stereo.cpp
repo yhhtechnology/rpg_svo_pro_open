@@ -89,7 +89,6 @@ UpdateResult FrameHandlerStereo::processFirstFrame() {
 UpdateResult FrameHandlerStereo::processFrame() {
     // ---------------------------------------------------------------------------
     // tracking
-
     // STEP 1: Sparse Image Align
     size_t n_tracked_features = 0;
     sparseImageAlignment();
@@ -97,7 +96,10 @@ UpdateResult FrameHandlerStereo::processFrame() {
     // STEP 2: Map Reprojection & Feature Align
     n_tracked_features = projectMapInFrame();
     if (n_tracked_features < options_.quality_min_fts) {
-        return makeKeyframe();  // force stereo triangulation to recover
+        // return makeKeyframe();  // force stereo triangulation to recover
+        LOG(WARNING) << "Not enough feature after reprojection: "
+                     << n_tracked_features;
+        return UpdateResult::kFailure;
     }
 
     // STEP 3: Pose & Structure Optimization
@@ -106,8 +108,14 @@ UpdateResult FrameHandlerStereo::processFrame() {
         if (n_tracked_features < options_.quality_min_fts) {
             return makeKeyframe();  // force stereo triangulation to recover
         }
-        optimizeStructure(new_frames_, options_.structure_optimization_max_pts,
-                          5);
+        optimizeStructure(new_frames_, options_.structure_optimization_max_pts, 2);
+        // // std::vector<std::vector<FramePtr>> overlap_kfs_;
+        g2o_optimizer_.print();
+        // size_t n_incorrect_edges_1, n_incorrect_edges_2;
+        // double init_error, final_error;
+        // g2o_optimizer_.localBA(new_frames_->at(0), &overlap_kfs_.at(0),
+        //     n_incorrect_edges_1, n_incorrect_edges_2, init_error, final_error);
+        // // optimizeStructure(new_frames_, options_.structure_optimization_max_pts, 3);
     }
     // return if tracking bad
     setTrackingQuality(n_tracked_features);
@@ -120,8 +128,9 @@ UpdateResult FrameHandlerStereo::processFrame() {
     frame_utils::getSceneDepth(new_frames_->at(0), depth_median_, depth_min_,
                                depth_max_);
     if (!need_new_kf_(new_frames_->at(0)->T_f_w_)) {
-        for (size_t i = 0; i < new_frames_->size(); ++i)
+        for (size_t i = 0; i < new_frames_->size(); ++i) {
             depth_filter_->updateSeeds(overlap_kfs_.at(i), new_frames_->at(i));
+        }
         return UpdateResult::kDefault;
     }
     SVO_DEBUG_STREAM("New keyframe selected.");

@@ -183,7 +183,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {
@@ -774,9 +774,9 @@ void FrameHandlerBase::optimizeStructure(const FrameBundle::Ptr& frames,
             optimize_on_sphere = true;
         std::deque<PointPtr> pts;
         for (size_t i = 0; i < frame->num_features_; ++i) {
-            if (frame->landmark_vec_[i] == nullptr ||
-                isEdgelet(frame->type_vec_[i]))
+            if (frame->landmark_vec_[i] == nullptr || isEdgelet(frame->type_vec_[i])) {
                 continue;
+            }
             pts.push_back((frame->landmark_vec_[i]));
         }
         auto it_end = pts.end();
@@ -821,11 +821,8 @@ void FrameHandlerBase::upgradeSeedsToFeatures(const FramePtr& frame) {
                 unconverged_cnt++;
             }
             SeedRef& ref = frame->seed_ref_vec_[i];
-
             // In multi-camera case, it might be that we already created a
-            // 3d-point
-            // for this seed previously when processing another frame from the
-            // bundle.
+            // 3d-point for this seed previously when processing another frame from the bundle.
             PointPtr point = ref.keyframe->landmark_vec_[ref.seed_id];
             if (point == nullptr) {
                 // That's not the case. Therefore, create a new 3d point.

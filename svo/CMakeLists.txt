@@ -6,6 +6,7 @@ catkin_simple()
 
 include(SvoSetup)
 
+add_subdirectory(Thirdparty/g2o)
 list(APPEND SVO_SOURCEFILES
   src/frame_handler_mono.cpp
   src/frame_handler_stereo.cpp
@@ -18,6 +19,8 @@ list(APPEND SVO_SOURCEFILES
   src/imu_handler.cpp
   src/stereo_triangulation.cpp
   src/io.cpp
+  # # src/G2oTypes.cc
+  src/g2o_ba.cpp
 )
 
 list(APPEND SVO_HEADERFILES
@@ -35,13 +38,19 @@ list(APPEND SVO_HEADERFILES
   include/svo/stereo_triangulation.h
   include/svo/io.h
   include/svo/svo.h
+  # # include/svo/G2oTypes.h
+  include/svo/g2o_ba.h
   )
+
+
 
 ################################################################################
 # Create svo library
 include_directories(include ${INCLUDE_DIRS})
 cs_add_library(svo SHARED ${SVO_SOURCEFILES} ${SVO_HEADERFILES})
-target_link_libraries(svo ${LINK_LIBS})
+target_link_libraries(svo ${LINK_LIBS}
+${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+)
 
 ################################################################################
 ###
@@ -50,6 +59,7 @@ target_link_libraries(svo ${LINK_LIBS})
 
 catkin_add_gtest(${PROJECT_NAME}-test-frame test/test_frame.cpp)
 target_link_libraries(${PROJECT_NAME}-test-frame ${PROJECT_NAME})
+# target_link_libraries(${PROJECT_NAME}-test-frame ${PROJECT_NAME})
 
 ################################################################################
 cs_install()

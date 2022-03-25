@@ -167,7 +167,7 @@ class HomogeneousPointParameterBlock : public ParameterBlock {
  private:
     Eigen::Vector4d estimate_;
     bool initialized_;  ///< Whether or not the 3d position is considered
-                        ///initialised.
+                        /// initialised.
 };
 
 }  // namespace ceres_backend

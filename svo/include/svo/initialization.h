@@ -29,9 +29,9 @@ enum class InitializerType {
     kOneShot,     ///< Initialize points on a plane with given depth
     kStereo,      ///< Triangulate from two views with known pose
     kArrayGeometric,    ///< Estimate relative pose of two camera arrays, using
-                        ///17pt RANSAC
+                        /// 17pt RANSAC
     kArrayOptimization  ///< Estimate relative pose of two camera arrays using
-                        ///GTSAM
+                        /// GTSAM
 };
 
 /// Common options for all initializers
@@ -111,7 +111,7 @@ class AbstractInitialization {
     FeatureTrackerUniquePtr tracker_;  //!< Feature tracker
     FrameBundlePtr frames_ref_;        //!< reference frames
     Transformation T_cur_from_ref_;    //!< computed transformation between the
-                                       //!first two frames.
+                                       //! first two frames.
     Quaternion R_ref_world_;
     Quaternion R_cur_world_;               //!< Absolute orientation prior.
     Eigen::Vector3d t_ref_cur_;            //!< Translation prior

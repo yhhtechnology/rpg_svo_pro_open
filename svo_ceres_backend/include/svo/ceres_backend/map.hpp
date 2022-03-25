@@ -96,7 +96,7 @@ class Map {
         ceres::LossFunction* loss_function_ptr;    ///< The m-estimator.
         std::shared_ptr<ErrorInterface> error_interface_ptr;
         ///< The pointer to the error interface of the respective residual
-        ///block.
+        /// block.
     };
     typedef std::pair<uint64_t, std::shared_ptr<ceres_backend::ParameterBlock> >
         ParameterBlockSpec;
@@ -107,7 +107,7 @@ class Map {
     /// @brief The Parameterisation enum
     enum Parameterization {
         HomogeneousPoint,  ///< Use
-                           ///ceres_backend::HomogeneousPointLocalParameterization.
+        /// ceres_backend::HomogeneousPointLocalParameterization.
         Pose6d,  ///< Use ceres_backend::PoseLocalParameterization.
         Trivial  ///< No local parameterisation.
     };
