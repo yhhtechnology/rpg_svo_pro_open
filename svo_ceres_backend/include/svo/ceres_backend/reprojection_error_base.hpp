@@ -52,7 +52,9 @@ class ReprojectionErrorBase
           2 /* number of residuals */,
           7 /* size of first parameter */,
           4 /* size of second parameter */,
-          7 /* size of third parameter (camera extrinsics) */>,
+          7 /* size of third parameter (camera extrinsics) */,
+          1 /* size of fourth parameter (t_camera_imu) */
+          >,
       public ErrorInterface {
  public:
     /// \brief Measurement type (2D).

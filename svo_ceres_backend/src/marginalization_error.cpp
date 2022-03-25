@@ -62,9 +62,8 @@ inline void conservativeResize(Eigen::MatrixXd& matrixXd, int rows, int cols) {
 
 inline void conservativeResize(Eigen::VectorXd& vectorXd, int size) {
     if (vectorXd.rows() == 1) {
-        Eigen::VectorXd tmp(
-            size);  // Eigen::VectorXd tmp =
-                    // Eigen::VectorXd::Zero(size,Eigen::RowMajor);
+        Eigen::VectorXd tmp(size);  // Eigen::VectorXd tmp =
+        // Eigen::VectorXd::Zero(size,Eigen::RowMajor);
         const int common_size = std::min((int)vectorXd.cols(), size);
         tmp.head(common_size) = vectorXd.head(common_size);
         vectorXd.swap(tmp);
@@ -132,6 +131,7 @@ bool MarginalizationError::addResidualBlocks(
 // linearised.
 bool MarginalizationError::addResidualBlock(
     ceres::ResidualBlockId residual_block_id, bool keep) {
+    
     // get the residual block & check
     std::shared_ptr<ErrorInterface> error_interface_ptr =
         map_ptr_->errorInterfacePtr(residual_block_id);
@@ -336,6 +336,8 @@ bool MarginalizationError::addResidualBlock(
         map_ptr_->residualBlockIdToResidualBlockSpecMap()
             .find(residual_block_id)
             ->second.loss_function_ptr;
+
+
     if (lossFunction) {
         DEBUG_CHECK(map_ptr_->residualBlockIdToResidualBlockSpecMap().find(
                         residual_block_id) !=
@@ -383,6 +385,8 @@ bool MarginalizationError::addResidualBlock(
         // correct residuals (caution: must be after "correct Jacobians"):
         residuals_eigen *= residual_scaling;
     }
+
+
 
     // add blocks to lhs and rhs
     for (size_t i = 0; i < parameters.size(); ++i) {
@@ -445,6 +449,9 @@ bool MarginalizationError::addResidualBlock(
                 jacobians_minimal_eigen.at(i);
         }
     }
+
+
+    // printf("MarginalizationError::addResidualBlock 4 \n");
 
     // finally, we also have to delete the nonlinear residual block from the
     // map:

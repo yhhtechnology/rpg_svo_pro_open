@@ -41,14 +41,14 @@ class Matcher {
         bool align_1d =
             false;  //!< in epipolar search: align patch 1D along epipolar line
         int align_max_iter = 10;  //!< number of iterations for aligning the
-                                  //!feature patches in gauss newton
+                                  //! feature patches in gauss newton
         double max_epi_length_optim = 2.0;  //!< max length of epipolar line to
-                                            //!skip epipolar search and directly
-                                            //!go to img align
+        //! skip epipolar search and directly
+        //! go to img align
         size_t max_epi_search_steps =
             100;  //!< max number of evaluations along epipolar line
         bool subpix_refinement = true;  //!< do gauss newton feature patch
-                                        //!alignment after epipolar search
+                                        //! alignment after epipolar search
         bool epi_search_edgelet_filtering = true;
         bool scan_on_unit_sphere = true;
         double epi_search_edgelet_max_angle = 0.7;
@@ -80,8 +80,8 @@ class Matcher {
     Eigen::Vector2d
         epi_image_;  //!< vector from epipolar start to end on the image plane
     double epi_length_pyramid_;  //!< length of epipolar line segment in pixels
-                                 //!on pyrimid level (only used for epipolar
-                                 //!search)
+                                 //! on pyrimid level (only used for epipolar
+    //! search)
     double h_inv_;  //!< hessian of 1d image alignment along epipolar line
     int search_level_;
     bool reject_;

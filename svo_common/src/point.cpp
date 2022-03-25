@@ -33,7 +33,7 @@ Point::Point(const int id, const Eigen::Vector3d& pos) : id_(id), pos_(pos) {
 
 Point::~Point() {}
 
-std::atomic_uint64_t Point::global_map_value_version_{0u};
+std::atomic<std::uint64_t> Point::global_map_value_version_{0u};
 
 void Point::addObservation(const FramePtr& frame, const size_t feature_index) {
     CHECK_NOTNULL(frame.get());

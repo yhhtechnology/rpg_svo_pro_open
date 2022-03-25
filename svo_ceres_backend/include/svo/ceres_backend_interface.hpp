@@ -234,7 +234,13 @@ class CeresBackendInterface : public AbstractBundleAdjustment {
 
     std::string getStationaryStatusStr() const;
 
+    inline double getTimeDelayCameraIMU() const override {
+        std::unique_lock<std::mutex> lock(get_time_delay_mutex_);
+        return time_delay_;
+    };
+
  protected:
+    double time_delay_;
     // modules
     Estimator backend_;
     std::shared_ptr<ImuHandler> imu_handler_;
@@ -280,6 +286,7 @@ class CeresBackendInterface : public AbstractBundleAdjustment {
     // Threading
     mutable std::condition_variable wait_condition_;
     mutable std::mutex mutex_backend_;
+    mutable std::mutex get_time_delay_mutex_;
     mutable std::mutex loopclosinginfo_;
     std::unique_ptr<std::thread> thread_;
     std::atomic_bool stop_thread_{false};

@@ -60,6 +60,7 @@
 #include "svo/ceres_backend/map.hpp"
 #include "svo/ceres_backend/pose_parameter_block.hpp"
 #include "svo/ceres_backend/speed_and_bias_parameter_block.hpp"
+#include "svo/ceres_backend/timedelay_parameter_block.hpp"
 
 namespace svo {
 namespace ceres_backend {

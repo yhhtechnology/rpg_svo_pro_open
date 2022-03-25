@@ -266,6 +266,7 @@ void initializeSeeds(const FramePtr& frame,
                                             frame->numFeatures());
         frame->landmark_vec_.resize(frame->px_vec_.cols(), nullptr);
         frame->seed_ref_vec_.resize(frame->px_vec_.cols());
+        frame->feature_velocity_vec_.resize(Eigen::NoChange, frame->numFeatures());
 
         // compute and normalize bearing vectors
         frame_utils::computeNormalizedBearingVectors(

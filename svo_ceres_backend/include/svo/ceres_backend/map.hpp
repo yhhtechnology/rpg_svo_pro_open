@@ -96,7 +96,7 @@ class Map {
         ceres::LossFunction* loss_function_ptr;    ///< The m-estimator.
         std::shared_ptr<ErrorInterface> error_interface_ptr;
         ///< The pointer to the error interface of the respective residual
-        ///block.
+        /// block.
     };
     typedef std::pair<uint64_t, std::shared_ptr<ceres_backend::ParameterBlock> >
         ParameterBlockSpec;
@@ -107,9 +107,10 @@ class Map {
     /// @brief The Parameterisation enum
     enum Parameterization {
         HomogeneousPoint,  ///< Use
-                           ///ceres_backend::HomogeneousPointLocalParameterization.
+        /// ceres_backend::HomogeneousPointLocalParameterization.
         Pose6d,  ///< Use ceres_backend::PoseLocalParameterization.
-        Trivial  ///< No local parameterisation.
+        Trivial,  ///< No local parameterisation.
+        TimeDelay  ///< No local parameterisation.
     };
 
     /**
@@ -155,6 +156,11 @@ class Map {
         int parameterization = Parameterization::Trivial,
         const int group = -1);
 
+    bool addTdParameterBlock(double *td) {
+        problem_->AddParameterBlock(td, 1);
+        return true;
+    }
+
     /**
      * @brief Remove a parameter block from the map.
      * @param parameter_block_id ID of block to remove.
@@ -170,6 +176,11 @@ class Map {
     bool removeParameterBlock(
         std::shared_ptr<ceres_backend::ParameterBlock> parameter_block);
 
+    ceres::ResidualBlockId addResidualBlock(
+        std::shared_ptr<ceres::CostFunction> cost_function,
+        ceres::LossFunction* loss_function,
+        std::vector<std::shared_ptr<ceres_backend::ParameterBlock> >&parameter_block_ptrs,
+        double *td);
     /**
      * @brief Adds a residual block.
      * @param[in] cost_function The error term to be used.
@@ -183,7 +194,6 @@ class Map {
         ceres::LossFunction* loss_function,
         std::vector<std::shared_ptr<ceres_backend::ParameterBlock> >&
             parameter_block_ptrs);
-
     /**
      * @brief Replace the parameters connected to a residual block ID.
      * @param[in] residual_block_id The ID of the residual block the parameter
@@ -257,6 +267,11 @@ class Map {
      * @return True on success.
      */
     bool setParameterBlockConstant(uint64_t parameter_block_id);
+
+    bool setParameterBlockConstant(double *parametes) {
+        problem_->SetParameterBlockConstant(parametes);
+        return true;
+    }
     bool isParameterBlockConstant(uint64_t parameter_block_id);
 
     /**

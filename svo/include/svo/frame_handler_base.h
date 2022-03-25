@@ -215,10 +215,10 @@ struct BaseOptions {
 enum class Stage {
     kPaused,         ///< Stage at the beginning and after reset
     kInitializing,   ///< Stage until the first frame with enough features is
-                     ///found
+                     /// found
     kTracking,       ///< Stage when SVO is running and everything is well
     kRelocalization  ///< Stage when SVO looses tracking and it tries to
-                     ///relocalize
+                     /// relocalize
 };
 extern const std::unordered_map<svo::Stage, std::string, EnumClassHash>
     kStageName;
@@ -413,24 +413,24 @@ class FrameHandlerBase
  protected:
     Stage stage_;      //!< Current stage of the algorithm.
     bool set_reset_;   //!< Flag that the user can set. Will reset the system
-                       //!before the next iteration.
+                       //! before the next iteration.
     bool set_start_;   //!< Flag the user can set to start the system when the
-                       //!next image is received.
+                       //! next image is received.
     MapPtr map_;       //!< Map of keyframes created by the slam system.
     vk::Timer timer_;  //!< Stopwatch to measure time to process frame.
     vk::RingBuffer<double> acc_frame_timings_;  //!< Total processing time of
-                                                //!the last 10 frames, used to
-                                                //!give some user feedback on
-                                                //!the performance.
+                                                //! the last 10 frames, used to
+    //! give some user feedback on
+    //! the performance.
     vk::RingBuffer<size_t> acc_num_obs_;  //!< Number of observed features of
-                                          //!the last 10 frames, used to give
-                                          //!some user feedback on the tracking
-                                          //!performance.
+                                          //! the last 10 frames, used to give
+    //! some user feedback on the tracking
+    //! performance.
     size_t num_obs_last_;  //!< Number of observations in the previous frame.
     TrackingQuality tracking_quality_;  //!< An estimate of the tracking quality
-                                        //!based on the number of tracked
-                                        //!features.
-    UpdateResult update_res_;           //!< Update result of last frame bundle
+                                        //! based on the number of tracked
+    //! features.
+    UpdateResult update_res_;   //!< Update result of last frame bundle
     size_t frame_counter_ = 0;  //!< Number of frames processed since started
     double depth_median_;       //!< Median depth at last frame
     double depth_min_;          //!< Min depth at last frame
@@ -458,7 +458,7 @@ class FrameHandlerBase
     // relocalization
     FramePtr reloc_keyframe_;
     size_t relocalization_n_trials_;  //!< With how many frames did we try to
-                                      //!relocalize?
+                                      //! relocalize?
 
     void setInitialPose(const FrameBundlePtr& frame_bundle) const;
 
@@ -513,6 +513,7 @@ class FrameHandlerBase
     // status for loss
     bool loss_without_correction_ = false;
     double last_good_tracking_time_sec_ = -1.0;
+    bool get_time_delat_frome_ba_ = false;
 };
 
 }  // namespace nslam

@@ -58,7 +58,7 @@ class ReprojectionError : public ReprojectionErrorBase {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /// \brief The base class type.
-    typedef ceres::SizedCostFunction<2, 7, 4, 7> base_t;
+    typedef ceres::SizedCostFunction<2, 7, 4, 7, 1> base_t;
 
     /// \brief Number of residuals (2)
     static const int kNumResiduals = 2;
@@ -75,8 +75,11 @@ class ReprojectionError : public ReprojectionErrorBase {
     /// @param[in] information The information (weight) matrix.
     ReprojectionError(CameraConstPtr cameraGeometry,
                       const measurement_t& measurement,
-                      const covariance_t& information);
-
+                      const covariance_t& information,
+                      const Eigen::Vector2d &feature_velocity,
+                      const double td);
+    Eigen::Vector2d feature_velocity_;
+    double td_;
     /// \brief Trivial destructor.
     virtual ~ReprojectionError() {}
 

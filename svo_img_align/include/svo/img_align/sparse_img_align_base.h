@@ -48,7 +48,7 @@ struct SparseImgAlignOptions {
 struct SparseImgAlignState {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Transformation T_icur_iref;  ///< Relative transformation between last and
-                                 ///current frame
+                                 /// current frame
     double alpha = 0.0;  ///< Affine illumination model multiplicative parameter
     double beta = 0.0;   ///< Affine illumination model additive parameter
     // TODO: if we have multiple frames, we should have alpha&beta for every

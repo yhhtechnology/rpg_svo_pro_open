@@ -51,7 +51,12 @@ namespace ceres_backend {
 // Construct with measurement and information matrix.
 inline ReprojectionError::ReprojectionError(CameraConstPtr camera_geometry,
                                             const measurement_t& measurement,
-                                            const covariance_t& information) {
+                                            const covariance_t& information,
+                                            const Eigen::Vector2d &feature_velocity,
+                                            const double td)
+    : td_(td){
+    feature_velocity_.x() = feature_velocity.x();
+    feature_velocity_.y() = feature_velocity.y();
     setMeasurement(measurement);
     setInformation(information);
     setCameraGeometry(camera_geometry);
@@ -119,6 +124,10 @@ inline bool ReprojectionError::EvaluateWithMinimalJacobians(
                     jacobians[2]);
                 J2.setZero();
             }
+            if (jacobians[3] != nullptr) {
+                Eigen::Map<Eigen::Vector2d> jacobian_td(jacobians[3]);
+                jacobian_td.setZero();
+            }
         }
         return true;
     }
@@ -139,6 +148,11 @@ inline bool ReprojectionError::EvaluateWithMinimalJacobians(
     // the sensor to camera transformation
     Eigen::Map<const Eigen::Vector3d> t_SC_S(&parameters[2][0]);
     Eigen::Map<const Eigen::Quaterniond> q_SC(&parameters[2][3]);
+
+    // time delay camera to imu
+    double td = parameters[3][0];
+    Eigen::Vector2d measurement_td;
+    measurement_td = measurement_ - (td - td_) * (feature_velocity_);
 
     // transform the point into the camera:
     Eigen::Matrix3d C_SC = q_SC.toRotationMatrix();
@@ -166,7 +180,8 @@ inline bool ReprojectionError::EvaluateWithMinimalJacobians(
         camera_geometry_->project3(hp_C.head<3>(), &kp, J_proj);
     }
 
-    measurement_t error = measurement_ - kp;
+    measurement_t error = measurement_td - kp;
+    // measurement_t error = measurement_ - kp;
 
     // weight:
     measurement_t weighted_error = square_root_information_ * error;
@@ -283,6 +298,13 @@ inline bool ReprojectionError::EvaluateWithMinimalJacobians(
                     J2_minimal_mapped = J2_minimal;
                 }
             }
+        }
+
+        if (jacobians[3] != nullptr) {
+            Eigen::Map<Eigen::Vector2d> jacobian_td(jacobians[3]);
+            jacobian_td = (-1) * feature_velocity_;
+            // std::cout<<"jacobian_td   = \n "<<jacobian_td<<"\n";
+            // jacobian_td = square_root_information_ * (-1) * feature_velocity_;
         }
     }
 

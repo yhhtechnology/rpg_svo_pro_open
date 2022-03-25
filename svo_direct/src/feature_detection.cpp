@@ -50,6 +50,7 @@ void AbstractDetector::detect(const FramePtr& frame) {
     frame->landmark_vec_.resize(frame->num_features_, nullptr);
     frame->seed_ref_vec_.resize(frame->num_features_);
     frame->invmu_sigma2_a_b_vec_.resize(Eigen::NoChange, frame->num_features_);
+    frame->feature_velocity_vec_.resize(Eigen::NoChange, frame->num_features_);
     frame_utils::computeNormalizedBearingVectors(frame->px_vec_, *frame->cam(),
                                                  &frame->f_vec_);
 }

@@ -3,8 +3,10 @@
 #include <string>
 #include <vector>
 
-namespace rpg_common {
-namespace fs {
+namespace rpg_common
+{
+namespace fs
+{
 
 void concatenateFolderAndFileName(const std::string& folder,
                                   const std::string& file_name,
@@ -16,9 +18,8 @@ std::string concatenateFolderAndFileName(const std::string& folder,
 bool fileExists(const std::string& path);
 bool pathExists(const std::string& path);
 
-void splitPathAndFilename(const std::string& str,
-                          std::string* path,
-                          std::string* filename);
+void splitPathAndFilename(
+    const std::string& str, std::string* path, std::string* filename);
 
 // Returns full paths.
 void getFilesAndSubfolders(const std::string& path,

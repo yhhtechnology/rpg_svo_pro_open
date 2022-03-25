@@ -305,6 +305,12 @@ void sortCandidatesByNumObs(Reprojector::Candidates& candidates) {
               });
 }
 
+
+    // reprojector_utils::matchCandidates(
+    //     cur_frame, max_total_n_features, options_.affine_est_offset,
+    //     options_.affine_est_gain, candidates_, *grid_, lm_stats,
+    //     options_.seed_sigma2_thresh);
+
 void matchCandidates(const FramePtr& frame,
                      const size_t max_n_features_per_frame,
                      const bool affine_est_offset,
@@ -434,6 +440,18 @@ bool matchCandidate(const FramePtr& frame,
         c.ref_frame->invmu_sigma2_a_b_vec_.col(c.ref_index);
     frame->in_ba_graph_vec_[frame->numFeatures()] =
         c.ref_frame->in_ba_graph_vec_[c.ref_index];
+
+    // get Velocitys
+    double pre_second = c.ref_frame->timestamp_ * 1e-9;
+    double cur_second = frame->timestamp_ * 1e-9;
+    double dt = cur_second - pre_second;
+    // std::cout << " [cur_second = " + std::to_string(cur_second) +  "; pre_t = " + std::to_string(pre_second)<<"\n";
+    // std::cout<<"  dt = "<<std::to_string(dt)<<"\n";
+    assert(dt > 0.0);
+    auto pre_point2d = c.ref_frame->px_vec_.col(c.ref_index);
+    double v_x = (matcher.px_cur_(0) - pre_point2d(0)) / dt;
+    double v_y = (matcher.px_cur_(1) - pre_point2d(1)) / dt;
+    frame->feature_velocity_vec_.col(frame->numFeatures()) = Eigen::Vector2d(v_x, v_y);
     return true;
 }
 

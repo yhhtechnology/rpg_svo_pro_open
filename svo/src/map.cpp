@@ -221,6 +221,7 @@ void Map::checkDataConsistency() const {
         CHECK_EQ(static_cast<size_t>(frame->px_vec_.cols()),
                  frame->seed_ref_vec_.size());
         CHECK_EQ(frame->px_vec_.cols(), frame->invmu_sigma2_a_b_vec_.cols());
+        CHECK_EQ(frame->px_vec_.cols(), frame->feature_velocity_vec_.cols());
         CHECK_LE(frame->num_features_,
                  static_cast<size_t>(frame->px_vec_.cols()));
 

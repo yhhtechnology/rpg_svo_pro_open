@@ -487,7 +487,7 @@ void computeDerivMaxMagnitude(const cv::Mat& img_8u, cv::Mat& mag_8u) {
             *mag_ptr = std::max(abs(img_ptr[1] - img_ptr[-1]),
                                 abs(img_ptr[stride] - img_ptr[-stride]));
         //*mag_ptr = abs(img_ptr[1]-img_ptr[-1]) +
-        //abs(img_ptr[stride]-img_ptr[-stride]);
+        // abs(img_ptr[stride]-img_ptr[-stride]);
     }
 }
 

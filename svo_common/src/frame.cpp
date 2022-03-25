@@ -95,7 +95,7 @@ void Frame::resizeFeatureStorage(size_t num) {
         landmark_vec_.resize(num, nullptr);
         seed_ref_vec_.resize(num);
         in_ba_graph_vec_.resize(num, false);
-
+        feature_velocity_vec_.conservativeResize(Eigen::NoChange, num);
         // initial values
         level_vec_.tail(n_new).setZero();
         track_id_vec_.tail(n_new).setConstant(-1);
@@ -119,6 +119,7 @@ void Frame::clearFeatureStorage() {
     landmark_vec_.clear();
     seed_ref_vec_.clear();
     in_ba_graph_vec_.clear();
+    feature_velocity_vec_.resize(Eigen::NoChange, 0);
     num_features_ = 0;
 }
 
@@ -135,6 +136,7 @@ void Frame::copyFeaturesFrom(const Frame& other) {
     track_id_vec_ = other.track_id_vec_;
     num_features_ = other.num_features_;
     in_ba_graph_vec_ = other.in_ba_graph_vec_;
+    feature_velocity_vec_ = other.feature_velocity_vec_;
 }
 
 FeatureWrapper Frame::getFeatureWrapper(size_t index) {

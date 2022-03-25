@@ -80,6 +80,9 @@ class AbstractBundleAdjustment {
 
     virtual void getLastState(ViNodeState* state) const = 0;
 
+    // delay_imu_cam
+    virtual double getTimeDelayCameraIMU() const = 0;
+
  protected:
     BundleAdjustmentType type_ = BundleAdjustmentType::kNone;
 };

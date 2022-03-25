@@ -314,6 +314,11 @@ bool Map::addParameterBlock(
                 &pose_local_parameterization_);
             break;
         }
+        case Parameterization::TimeDelay: {
+            problem_->AddParameterBlock(parameter_block->parameters(),
+                                        parameter_block->dimension());
+            break;
+        }
         default: {
             LOG(ERROR) << "Unknown parameterization!";
             return false;
@@ -360,6 +365,55 @@ bool Map::removeParameterBlock(uint64_t parameter_block_id) {
 bool Map::removeParameterBlock(
     std::shared_ptr<ceres_backend::ParameterBlock> parameter_block) {
     return removeParameterBlock(parameter_block->id());
+}
+
+
+ceres::ResidualBlockId Map::addResidualBlock(
+    std::shared_ptr<ceres::CostFunction> cost_function,
+    ceres::LossFunction* loss_function,
+    std::vector<std::shared_ptr<ceres_backend::ParameterBlock> >&parameter_block_ptrs,
+    double *td) {
+    ceres::ResidualBlockId return_id;
+    std::vector<double*> parameter_blocks;
+    ParameterBlockCollection parameter_block_collection;
+    for (size_t i = 0; i < parameter_block_ptrs.size(); ++i) {
+        parameter_blocks.push_back(parameter_block_ptrs.at(i)->parameters());
+        parameter_block_collection.push_back(ParameterBlockSpec(
+            parameter_block_ptrs.at(i)->id(), parameter_block_ptrs.at(i)));
+    }
+    parameter_blocks.push_back(td);
+    // add in ceres
+    return_id = problem_->AddResidualBlock(cost_function.get(), loss_function,
+                                           parameter_blocks);
+    // add in book-keeping
+    std::shared_ptr<ErrorInterface> error_interface_ptr =
+        std::dynamic_pointer_cast<ErrorInterface>(cost_function);
+    DEBUG_CHECK(error_interface_ptr != 0)
+        << "Supplied a cost function without ceres_backend::ErrorInterface";
+    residual_block_id_to_residual_block_spec_map_.insert(
+        std::pair<ceres::ResidualBlockId, ResidualBlockSpec>(
+            return_id,
+            ResidualBlockSpec(return_id, loss_function, error_interface_ptr)));
+
+    // update book-keeping
+    bool insertion_success;
+    std::tie(std::ignore, insertion_success) =
+        residual_block_id_to_parameter_block_collection_map_.insert(
+            std::make_pair(return_id, parameter_block_collection));
+    if (insertion_success == false) {
+        return ceres::ResidualBlockId(0);
+    }
+
+    // update ResidualBlock pointers on involved ParameterBlocks
+    for (uint64_t parameter_id = 0;
+         parameter_id < parameter_block_collection.size(); ++parameter_id) {
+        id_to_residual_block_multimap_.insert(
+            std::pair<uint64_t, ResidualBlockSpec>(
+                parameter_block_collection[parameter_id].first,
+                ResidualBlockSpec(return_id, loss_function,
+                                  error_interface_ptr)));
+    }
+    return return_id;
 }
 
 // Adds a residual block.

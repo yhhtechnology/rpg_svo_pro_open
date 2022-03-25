@@ -17,8 +17,8 @@
 
     <!--Parameters-->
     <rosparam file="$(find svo_ros)/param/vio_stereo.yaml" />
-    <param name='runlc' value='true' />
-
+    <param name='runlc' value='flase' />
+    <param name='trace_statistics' value='true' />
   </node>
 
   <!-- RVIZ -->

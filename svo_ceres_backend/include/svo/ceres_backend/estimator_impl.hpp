@@ -84,11 +84,17 @@ inline ceres::ResidualBlockId Estimator::addObservation(
     DEBUG_CHECK(std::dynamic_pointer_cast<const Camera>(
         camera_rig_->getCameraShared(cam_idx)))
         << "Incorrect pointer cast requested. ";
+
+    CHECK_EQ(frame->px_vec_.cols(), frame->feature_velocity_vec_.cols());
+    // 特征点速度在不同金字塔 怎么体现呢? feature_velocity_vec_
+    // 点特征可以这样搞!!!
+    // 边特征点不可以这样搞!!!
     std::shared_ptr<ceres_backend::ReprojectionError> reprojection_error =
         std::make_shared<ceres_backend::ReprojectionError>(
             std::static_pointer_cast<const Camera>(
                 camera_rig_->getCameraShared(cam_idx)),
-            frame->px_vec_.col(keypoint_idx), information);
+            frame->px_vec_.col(keypoint_idx), information,
+            frame->feature_velocity_vec_.col(keypoint_idx), frame->current_td_);
 
     if (isLandmarkFixed(landmark_backend_id.asInteger())) {
         reprojection_error->setPointConstant(true);
@@ -98,12 +104,29 @@ inline ceres::ResidualBlockId Estimator::addObservation(
     if (estimate_temporal_extrinsics_) {
         extrinsics_id = changeIdType(nframe_id, IdType::Extrinsics, cam_idx);
     }
+
+    // add residualBlock
+    std::vector<std::shared_ptr<ceres_backend::ParameterBlock> > parameter_block_ptrs;
+        parameter_block_ptrs.push_back(map_ptr_->parameterBlockPtr(nframe_id.asInteger()));
+        parameter_block_ptrs.push_back(map_ptr_->parameterBlockPtr(landmark_backend_id.asInteger()));
+        parameter_block_ptrs.push_back(map_ptr_->parameterBlockPtr(extrinsics_id.asInteger()));
+
+    uint8_t fix_camera_index = 0;
+    int32_t timedelay_bundle_id = 1;
+    BackendId td_bundleid = createExtrinsicsId(fix_camera_index, timedelay_bundle_id);
+    auto block_ptr = map_ptr_->parameterBlockPtr(td_bundleid.asInteger());
+    if(nullptr != block_ptr) {
+        parameter_block_ptrs.push_back(block_ptr);
+    } else {
+        printf(" map_ptr_->parameterBlockPtr(extrinsics_id.asInteger() nullptr \n");
+        assert(0);
+    }
+    // // 如果是边特征, 先不考虑这个?
     ceres::ResidualBlockId ret_val = map_ptr_->addResidualBlock(
         reprojection_error,
         cauchy_loss_function_ptr_ ? cauchy_loss_function_ptr_.get() : nullptr,
-        map_ptr_->parameterBlockPtr(nframe_id.asInteger()),
-        map_ptr_->parameterBlockPtr(landmark_backend_id.asInteger()),
-        map_ptr_->parameterBlockPtr(extrinsics_id.asInteger()));
+        parameter_block_ptrs);
+        // &time_delay_);
 
     // remember
     landmarks_map_.at(landmark_backend_id)

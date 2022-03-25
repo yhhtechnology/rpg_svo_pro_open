@@ -76,26 +76,26 @@ class Point {
         obs_;  //!< References to keyframes which observe the point
     Eigen::Vector3d normal_;              //!< Surface normal at point.
     Eigen::Matrix2d normal_information_;  //!< Inverse covariance matrix of
-                                          //!normal estimation.
+                                          //! normal estimation.
     bool normal_set_ =
         false;  //!< Flag whether the surface normal was estimated or not.
     uint64_t last_published_ts_ = 0;  //!< Timestamp of last publishing.
     std::array<int, 8> last_projected_kf_id_;  //!< Flag for the reprojection:
-                                               //!don't reproject a pt twice in
-                                               //!the same camera
-    PointType type_ = TYPE_CORNER;             //!< Quality of the point.
+                                               //! don't reproject a pt twice in
+    //! the same camera
+    PointType type_ = TYPE_CORNER;  //!< Quality of the point.
     int n_failed_reproj_ = 0;       //!< Number of failed reprojections. Used to
-                                    //!assess the quality of the point.
+                                    //! assess the quality of the point.
     int n_succeeded_reproj_ = 0;    //!< Number of succeeded reprojections. Used
-                                    //!to assess the quality of the point.
+                                    //! to assess the quality of the point.
     int last_structure_optim_ = 0;  //!< Timestamp of last point optimization
 
     // bundle adjustment:
     bool in_ba_graph_ = false;  //!< Was this point already added to the iSAM
-                                //!bundle adjustment graph?
+                                //! bundle adjustment graph?
     int64_t last_ba_update_ =
         -1;  //!< Timestamp of last estimate in bundle adjustment.
-    static std::atomic_uint64_t global_map_value_version_;
+    static std::atomic<std::uint64_t> global_map_value_version_;
 
     /// Default constructor.
     Point(const Eigen::Vector3d& pos);

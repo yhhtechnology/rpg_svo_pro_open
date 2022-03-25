@@ -33,6 +33,7 @@ using Levels = Eigen::Matrix<Level, Eigen::Dynamic, 1, Eigen::ColMajor>;
 using InlierMask = Eigen::Matrix<bool, Eigen::Dynamic, 1, Eigen::ColMajor>;
 using SeedStates = Eigen::Matrix<FloatType, 4, Eigen::Dynamic, Eigen::ColMajor>;
 using TrackIds = Eigen::VectorXi;
+using Velocitys = Eigen::Matrix<FloatType, 2, Eigen::Dynamic, Eigen::ColMajor>;
 
 //------------------------------------------------------------------------------
 // Forward declarations and common types for simplicity.

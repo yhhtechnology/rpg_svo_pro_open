@@ -115,6 +115,7 @@ int Estimator::addImu(const ImuParameters& imu_parameters) {
         return -1;
     }
     imu_parameters_.push_back(imu_parameters);
+    time_delay_ = imu_parameters.delay_imu_cam;
     return imu_parameters_.size() - 1;
 }
 
@@ -249,6 +250,18 @@ bool Estimator::addStates(const FrameBundleConstPtr& frame_bundle,
                 map_ptr_->parameterBlockPtr(
                     changeIdType(nframe_id, IdType::ImuStates).asInteger()));
         }
+        // // about para_Td
+        uint8_t fix_camera_index = 0;
+        int32_t timedelay_bundle_id = 1;
+        BackendId td_bundleid = createExtrinsicsId(fix_camera_index, timedelay_bundle_id);
+        std::shared_ptr<ceres_backend::TimeDelayParameterBlock>
+            td_parameter_block =
+                std::make_shared<ceres_backend::TimeDelayParameterBlock>(&time_delay_, td_bundleid.asInteger());
+        if (!map_ptr_->addParameterBlock(td_parameter_block,
+                                        ceres_backend::Map::TimeDelay)) {
+            return false;
+        }
+        // map_ptr_->addTdParameterBlock(&time_delay_);
     } else {
         const BackendId last_nframe_id = states_.ids[states_.ids.size() - 2];
         for (size_t i = 0; i < imu_parameters_.size(); ++i) {
@@ -265,6 +278,12 @@ bool Estimator::addStates(const FrameBundleConstPtr& frame_bundle,
                 map_ptr_->parameterBlockPtr(nframe_id.asInteger()),
                 map_ptr_->parameterBlockPtr(
                     changeIdType(nframe_id, IdType::ImuStates).asInteger()));
+        }
+        // about para_Td
+        // TODO(yehonghua)
+        bool is_estimate_td_ = true;
+        if(!is_estimate_td_) {
+            map_ptr_->setParameterBlockConstant(&time_delay_);
         }
     }
 
@@ -432,17 +451,6 @@ void Estimator::setAllFixedLandmarksEnabled(const bool enabled) {
     for (const uint64_t param_id : fixed_landmark_parameter_ids_) {
         ceres_backend::Map::ResidualBlockCollection residuals =
             map_ptr_->residuals(BackendId(param_id).asInteger());
-        //    if (residuals.size() == 1)
-        //    {
-        //      std::shared_ptr<ceres_backend::ReprojectionError> rep_error =
-        //          std::dynamic_pointer_cast<ceres_backend::ReprojectionError>(
-        //            residuals[0].error_interface_ptr);
-        //      if(rep_error)
-        //      {
-        //        rep_error->setDisabled(true);
-        //      }
-        //      continue;
-        //    }
         size_t n_proj = 0;
         for (size_t r = 0; r < residuals.size(); ++r) {
             std::shared_ptr<ceres_backend::ReprojectionError> rep_error =

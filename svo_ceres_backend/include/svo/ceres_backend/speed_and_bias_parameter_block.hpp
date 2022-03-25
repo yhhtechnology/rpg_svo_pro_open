@@ -105,6 +105,7 @@ class SpeedAndBiasParameterBlock : public ParameterBlock {
     virtual void plus(const double* x0,
                       const double* Delta_Chi,
                       double* x0_plus_Delta) const {
+        // printf("SpeedAndBiasParameterBlock::minus  !\n");
         Eigen::Map<const Eigen::Matrix<double, 9, 1> > x0_(x0);
         Eigen::Map<const Eigen::Matrix<double, 9, 1> > Delta_Chi_(Delta_Chi);
         Eigen::Map<Eigen::Matrix<double, 9, 1> > x0_plus_Delta_(x0_plus_Delta);

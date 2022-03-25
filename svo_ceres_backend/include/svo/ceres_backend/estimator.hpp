@@ -674,6 +674,7 @@ class Estimator {
 
     //
     size_t min_num_3d_points_for_fixation_ = 10u;
+    double time_delay_;
 
  private:
     /**

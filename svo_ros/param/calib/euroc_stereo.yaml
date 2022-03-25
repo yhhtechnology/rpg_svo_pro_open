@@ -53,7 +53,8 @@ cameras:
            0.0, 0.0, 0.0, 1.0]
 
 imu_params:
-  delay_imu_cam: 0.0
+  # delay_imu_cam: 0.001
+  delay_imu_cam: 0.000001
   max_imu_delta_t: 0.01
   acc_max: 176.0
   omega_max: 17

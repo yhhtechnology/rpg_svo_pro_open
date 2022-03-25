@@ -447,6 +447,12 @@ bool CeresBackendInterface::addStatesAndInertialMeasurementsToBackend(
                    << frame_bundle->getMinTimestampNanoseconds();
         return false;
     }
+    std::cout
+        << std::setprecision(16)
+        << "current_time = "<< current_frame_bundle_stamp
+        << ";   IMU time  = "<< imu_measurements.back().timestamp_
+        << ",   "<< imu_measurements.front().timestamp_
+        << "\n";
 
     // introduce a state for the frame in the backend --------------------------
     if (!backend_.addStates(frame_bundle, imu_measurements,
@@ -631,7 +637,13 @@ void CeresBackendInterface::optimizationLoop() {
             if (g_permon_backend_) {
                 g_permon_backend_->log("ceres_time", timer.stop());
             }
-
+            // update time_delay_
+            {
+                std::unique_lock<std::mutex> lock(get_time_delay_mutex_);
+                time_delay_ = backend_.time_delay_;
+                std::cout
+                    << "time_delay_ = "<<time_delay_<<"\n";
+            }
             last_optimized_nframe_.store(last_added_nframe_images_);
             if (g_permon_backend_) {
                 g_permon_backend_->log(
@@ -690,6 +702,7 @@ void CeresBackendInterface::setImu(
     imu_parameters.rate = imu_handler_->imu_calib_.imu_rate;
     imu_parameters.delay_imu_cam = imu_handler_->imu_calib_.delay_imu_cam;
     backend_.addImu(imu_parameters);
+    time_delay_ = imu_handler_->imu_calib_.delay_imu_cam;
 }
 
 // Start timer for benchmarking
