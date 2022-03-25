@@ -89,19 +89,40 @@ UpdateResult FrameHandlerStereo::processFirstFrame() {
 UpdateResult FrameHandlerStereo::processFrame() {
     // ---------------------------------------------------------------------------
     // tracking
-
     // STEP 1: Sparse Image Align
     size_t n_tracked_features = 0;
     sparseImageAlignment();
-
     // STEP 2: Map Reprojection & Feature Align
     n_tracked_features = projectMapInFrame();
+    // {
+    //     // cv::Mat img_rgb1, img_rgb2;
+    //     // feature_detection_utils::drawFeaturesAndshow(*new_frames_->at(0), &img_rgb1);
+    //     // // feature_detection_utils::drawFeaturesAndshow(*new_frames_->at(1), &img_rgb2);
+    //     // cv::imshow("img_rgb1: ",img_rgb1);
+    //     // // cv::imshow("img_rgb2: ",img_rgb2);
+
+    //     // cv::Mat img_rgb_hconcat;
+    //     // feature_detection_utils::drawFeaturesAndshowHconcat(new_frames_, &img_rgb_hconcat);
+    //     // cv::imshow("img_rgb_hconcat: ",img_rgb_hconcat);
+
+    //     if(last_frames_) {
+    //         cv::Mat img_rgb_vconcat;
+    //         feature_detection_utils::drawFeaturesAndshowVconcat(last_frames_, new_frames_, &img_rgb_vconcat);
+    //         cv::imshow("img_rgb_vconcat: ",img_rgb_vconcat);
+    //     }
+    //     printf("Press down enter to continue...\n");
+    //     while (1) {
+    //         if(cv::waitKey(0)) break;
+    //     }        
+    // }
     if (n_tracked_features < options_.quality_min_fts) {
         return makeKeyframe();  // force stereo triangulation to recover
     }
 
     // STEP 3: Pose & Structure Optimization
-    if (bundle_adjustment_type_ != BundleAdjustmentType::kCeres) {
+    // if (bundle_adjustment_type_ != BundleAdjustmentType::kCeres) {
+    size_t num_iter = 3;
+    for(size_t i = 0 ; i < num_iter; i++){
         n_tracked_features = optimizePose();
         if (n_tracked_features < options_.quality_min_fts) {
             return makeKeyframe();  // force stereo triangulation to recover

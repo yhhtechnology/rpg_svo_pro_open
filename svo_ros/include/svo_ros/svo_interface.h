@@ -1,7 +1,8 @@
 #pragma once
 
 #include <thread>
-
+#include <iostream>
+#include <fstream>
 #include <ros/ros.h>
 #include <std_msgs/String.h>  // user-input
 #include <sensor_msgs/Image.h>
@@ -88,6 +89,13 @@ class SvoInterface {
     void imuLoop();
     void monoLoop();
     void stereoLoop();
+
+    // // yhh  save
+    std::ofstream save_pose_;
+    std::ofstream save_gt_pose_;
+    std::ofstream save_times_;
+    std::ofstream save_imu_bias_;
+
 };
 
 }  // namespace svo

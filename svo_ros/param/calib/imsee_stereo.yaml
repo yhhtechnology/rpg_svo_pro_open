@@ -1,0 +1,76 @@
+label: "INDMIND"
+id: 412eab8e4058621f7036b5e765dfe812
+cameras:
+- camera:
+    label: cam0
+    id: 54812562fa109c40fe90b29a59dd7798
+    line-delay-nanoseconds: 0
+    image_height: 400
+    image_width: 640
+    type: pinhole
+    intrinsics:
+      cols: 1
+      rows: 4
+      data: [246, 245.847, 317.181, 200.978]
+    distortion:
+      type: radial-tangential  
+      parameters:
+        cols: 1
+        rows: 4
+#        data: [0.550733, 0.237955, -0.681431, 0.35273]
+        data: [0., 0., 0, 0.]
+  T_B_C:
+    cols: 4
+    rows: 4
+    data: [-0.999652, -0.012833, -0.023052, 0.0600169,
+           0.012826, -0.999918, 0.000473, -5.86951e-06,
+          -0.023056, 0.000177, 0.999734, -0.002,
+           0, 0, 0, 1]
+- camera:
+    label: cam1
+    id: 54812562fa109c40fe90b29a59dd7723
+    line-delay-nanoseconds: 0
+    image_height: 400
+    image_width: 640
+    type: pinhole
+
+    intrinsics:
+      cols: 1
+      rows: 4
+      data: [245.306, 245.647, 318.044, 224.108]
+    distortion:
+      type: radial-tangential  
+      parameters:
+        cols: 1
+        rows: 4
+#        data: [0.574026, 0.203408, -0.703424, 0.388112]
+        data: [0., 0., 0., 0.]
+  T_B_C:
+    cols: 4
+    rows: 4
+    data: [-0.999843, -0.00635928, -0.016543, -0.0599883, 
+           0.00644728, -0.999966, -0.00524184, -0.000144647, 
+          -0.0165089, -0.00534785, 0.999849, -0.002, 
+           0, 0, 0, 1]
+
+imu_params:
+  delay_imu_cam: 0.0
+  max_imu_delta_t: 0.01
+  acc_max: 176.0
+  omega_max: 17
+  sigma_omega_c: 0.12
+  sigma_acc_c: 0.009
+  sigma_omega_bias_c: 0.1
+  sigma_acc_bias_c: 0.001
+  sigma_integration: 0.0
+  g: 9.802
+  imu_rate: 1000
+
+imu_initialization:
+  velocity: [0.0, 0, 0.0]
+  omega_bias: [0.0, 0, 0.0]
+  acc_bias: [0.0, 0.0, 0.0]
+  velocity_sigma: 2.0
+  omega_bias_sigma: 0.01
+  acc_bias_sigma: 0.1
+

@@ -1038,6 +1038,8 @@ void GlobalMap::addObservationToLandmark(const FramePtr& f,
     }
     if (isPointOptimized(f->landmark_vec_[ftr_idx]->id())) {
         f->type_vec_[ftr_idx] = FeatureType::kFixedLandmark;
+        std::cout << "set kFixedLandmark" <<std::endl;
+        assert(0);
     } else {
         f->type_vec_[ftr_idx] = FeatureType::kOutlier;
     }
@@ -1159,6 +1161,7 @@ void GlobalMap::getOverlapKeyframesMaxN(const Frame& query_f,
         frame_id_to_dist_vec.emplace_back(
             std::make_pair(kf->id(), (kf->pos() - cam_pos).norm()));
     }
+    // 根据和当前帧的距离的来排序
     std::sort(
         frame_id_to_dist_vec.begin(), frame_id_to_dist_vec.end(),
         [](const std::pair<int, double>& p1, const std::pair<int, double>& p2) {
@@ -1174,7 +1177,6 @@ void GlobalMap::getOverlapKeyframesMaxN(const Frame& query_f,
             if (keypoint.first == -1) {
                 continue;
             }
-
             if (query_f.isVisible(keypoint.second)) {
                 overlap_kfs->emplace_back(kf);
                 last_queried_kf_ids_.insert(kf->id());

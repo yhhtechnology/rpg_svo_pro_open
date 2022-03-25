@@ -123,10 +123,48 @@ SvoInterface::SvoInterface(const PipelineType& pipeline_type,
 #endif
     }
 
+    {
+        // set save
+        std::string MY_OUTPUT_FOLDER = "/home/yehonghua/ws/slam/tool/ICP/data/";
+        std::string save_pose_path = MY_OUTPUT_FOLDER.c_str() + std::string("pose.txt");
+        std::string save_gt_pose_path = MY_OUTPUT_FOLDER + "gt_pose.txt";
+        std::string save_time_path = MY_OUTPUT_FOLDER + "time.txt";
+        std::string save_imu_bias_path = MY_OUTPUT_FOLDER + "imu_bias.txt";
+        save_pose_.open(save_pose_path, std::ios::out | std::ios::trunc);
+        save_gt_pose_.open(save_gt_pose_path, std::ios::out | std::ios::trunc);
+        save_imu_bias_.open(save_imu_bias_path, std::ios::out | std::ios::trunc);
+        save_times_.open(save_time_path, std::ios::out | std::ios::trunc);
+        save_pose_.clear();
+        save_gt_pose_.clear();
+        save_times_.clear();
+        save_imu_bias_.clear();
+        if(!save_pose_.is_open() ||
+            !save_gt_pose_.is_open() ||
+            !save_times_.is_open() ||
+            !save_imu_bias_.is_open()) {
+            std::cout<<"Failed to open save file !!!"<<std::endl;
+            assert(0);
+        } else {
+            save_pose_<<"t_ns,px,py,pz,q_w,q_x,q_y,q_z"<<std::endl;
+            save_gt_pose_<<"t_ns,px,py,pz,q_w,q_x,q_y,q_z"<<std::endl;
+            save_imu_bias_<<"current_timestamp(ms),acc_bias,gyr_bias"<<std::endl;
+            save_times_<<"current_timestamp(ms),process_t"<<std::endl;
+        }
+    }
     svo_->start();
 }
 
 SvoInterface::~SvoInterface() {
+
+    if(save_pose_.is_open() ||
+        save_gt_pose_.is_open() ||
+        save_times_.is_open() ||
+        save_imu_bias_.is_open()) {
+        save_pose_.close();
+        save_gt_pose_.close();
+        save_times_.close();
+        save_imu_bias_.close();
+    }
     if (imu_thread_) imu_thread_->join();
     if (image_thread_) image_thread_->join();
     VLOG(1) << "Destructed SVO.";
@@ -347,11 +385,24 @@ void SvoInterface::stereoCallback(const sensor_msgs::ImageConstPtr& msg0,
 
     processImageBundle({img0, img1}, msg0->header.stamp.toNSec());
     publishResults({img0, img1}, msg0->header.stamp.toNSec());
-
     if (svo_->stage() == Stage::kPaused && automatic_reinitialization_)
         svo_->start();
 
-    imageCallbackPostprocessing();
+    Transformation T_world_imu = svo_->getLastFrames()->get_T_W_B();
+    Eigen::Quaterniond q = T_world_imu.getRotation().toImplementation();
+    Eigen::Vector3d p = T_world_imu.getPosition();
+    int64_t time = msg0->header.stamp.toNSec();
+    // // save_pose_ <<"t_ns,px,py,pz,qw,qx,qy,qz\n";
+    save_pose_
+        << std::to_string(msg0->header.stamp.toNSec())<<","
+        << p(0)<<","
+        << p(1)<<","
+        << p(2)<<","
+        << q.w()<<","
+        << q.x()<<","
+        << q.y()<<","
+        << q.z()
+        <<std::endl;
 }
 
 void SvoInterface::imuCallback(const sensor_msgs::ImuConstPtr& msg) {
@@ -451,6 +502,7 @@ void SvoInterface::monoLoop() {
     }
 }
 
+void drop() { printf("drop frame\n"); }
 void SvoInterface::stereoLoop() {
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image,
                                                       sensor_msgs::Image>
@@ -472,6 +524,7 @@ void SvoInterface::stereoLoop() {
     image_transport::SubscriberFilter sub1(it, cam1_topic, 1,
                                            std::string("raw"));
     ExactSync sync_sub(ExactPolicy(5), sub0, sub1);
+    // sync_sub.registerDropCallback(boost::bind(drop));
     sync_sub.registerCallback(
         boost::bind(&svo::SvoInterface::stereoCallback, this, _1, _2));
 

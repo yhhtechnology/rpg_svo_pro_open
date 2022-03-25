@@ -335,9 +335,11 @@ void CeresBackendInterface::addLandmarksAndObservationsToBackend(
             }
             ++n_new_observations;
         } else {
+            // MapPoint 不插入CERES !!!
             if (isMapPoint(frame->type_vec_[kp_idx])) {
                 continue;
             }
+            // ceres 后端仅插入 角点 和 固定的特征点点 (固定的特征点插入优先级底)
             if (options_.only_use_corners) {
                 if (frame->type_vec_[kp_idx] != FeatureType::kCorner ||
                     frame->type_vec_[kp_idx] != FeatureType::kFixedLandmark) {
@@ -368,8 +370,7 @@ void CeresBackendInterface::addLandmarksAndObservationsToBackend(
 
             //! @todo We should first get all candidate points and sort them
             //!   according to parallax angle and num observations. afterwards
-            //!   only
-            //!   add best N observations.
+            //!   only add best N observations.
             // add the landmark
             if (isFixedLandmark(type)) {
                 kp_idx_to_n_obs_map_fixed_lm.emplace_back(

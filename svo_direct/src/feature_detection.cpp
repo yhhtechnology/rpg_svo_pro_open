@@ -256,6 +256,7 @@ void ShiTomasiDetector::detect(const ImgPyr& img_pyr,
                                     options_.border, options_.min_level,
                                     options_.max_level, corners, grid_,
                                     closeness_check_grid_);
+        // 这里是巨坑啊 : hard code  FeatureType::kMapPoint  TODO(yehonghua)
         fd_utils::fillFeatures(corners, FeatureType::kMapPoint, mask,
                                options_.threshold_shitomasi, max_n_features,
                                px_vec, score_vec, level_vec, grad_vec,

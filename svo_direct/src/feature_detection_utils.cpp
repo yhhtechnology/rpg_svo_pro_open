@@ -778,6 +778,238 @@ void drawFeatures(const Frame& frame,
     }
 }
 
+
+void drawFeaturesAndshow(const Frame& frame, cv::Mat* img_rgb) {
+    CHECK_NOTNULL(img_rgb);
+    *img_rgb = cv::Mat(frame.img_pyr_[0].size(), CV_8UC3);
+    cv::cvtColor(frame.img_pyr_[0], *img_rgb, cv::COLOR_GRAY2RGB);
+    for (size_t i = 0; i < frame.num_features_; ++i) {
+        const auto& px = frame.px_vec_.col(i);
+        const auto& g = frame.grad_vec_.col(i);
+        switch (frame.type_vec_[i]) {
+            case FeatureType::kCorner:
+                cv::rectangle(*img_rgb, cv::Point2f(px(0) - 2, px(1) - 2),
+                                cv::Point2f(px(0) + 2, px(1) + 2),
+                                cv::Scalar(0, 255, 0), -1);
+                break;
+            case FeatureType::kMapPoint:
+                cv::rectangle(*img_rgb, cv::Point2f(px(0) - 2, px(1) - 2),
+                                cv::Point2f(px(0) + 2, px(1) + 2),
+                                cv::Scalar(255, 0, 0), -1);
+                break;
+            case FeatureType::kFixedLandmark:
+                cv::rectangle(*img_rgb, cv::Point2f(px(0) - 3, px(1) - 3),
+                                cv::Point2f(px(0) + 3, px(1) + 3),
+                                cv::Scalar(101, 236, 255), -1);
+                break;
+            case FeatureType::kCornerSeed:
+            case FeatureType::kCornerSeedConverged:
+                cv::circle(*img_rgb, cv::Point2f(px(0), px(1)), 5,
+                            cv::Scalar(0, 255, 0), 1);
+                break;
+            case FeatureType::kMapPointSeed:
+            case FeatureType::kMapPointSeedConverged:
+                cv::circle(*img_rgb, cv::Point2f(px(0), px(1)), 5,
+                            cv::Scalar(255, 0, 0), 1);
+                break;
+            default:
+                cv::circle(*img_rgb, cv::Point2f(px(0), px(1)), 5,
+                            cv::Scalar(0, 0, 255), -1);
+                break;
+        }
+    }
+}
+
+void drawFeaturesAndshowVconcat(const FrameBundlePtr &frame_bundle_1,
+    const FrameBundlePtr &frame_bundle_2,
+    cv::Mat* img_hconcat) {
+    CHECK_NOTNULL(img_hconcat);
+    auto &img_1 = frame_bundle_1->at(0)->img_pyr_[0];
+    auto &img_2 = frame_bundle_2->at(0)->img_pyr_[0];
+    cv::vconcat(img_1, img_2, *img_hconcat);
+    cv::cvtColor(*img_hconcat, *img_hconcat, cv::COLOR_GRAY2RGB);
+    int up_corner_num = 0;
+    int down_corner_num = 0;
+    for (size_t i = 0; i < frame_bundle_1->at(0)->num_features_; ++i) {
+        const auto& px = frame_bundle_1->at(0)->px_vec_.col(i);
+        switch (frame_bundle_1->at(0)->type_vec_[i]) {
+            case FeatureType::kCorner:
+                cv::rectangle(*img_hconcat, cv::Point2f(px(0) - 2, px(1) - 2),
+                                cv::Point2f(px(0) + 2, px(1) + 2),
+                                cv::Scalar(0, 255, 0), -1);
+                up_corner_num++;
+                break;
+            case FeatureType::kMapPoint:
+                break;
+            case FeatureType::kFixedLandmark:
+                break;
+            case FeatureType::kCornerSeed:
+            case FeatureType::kCornerSeedConverged:
+                break;
+            case FeatureType::kMapPointSeed:
+            case FeatureType::kMapPointSeedConverged:
+                break;
+            default:
+                break;
+        }
+    }
+    int rows = img_1.rows;
+    for (size_t i = 0; i < frame_bundle_2->at(0)->num_features_; ++i) {
+        const auto& px = frame_bundle_2->at(0)->px_vec_.col(i);
+        cv::Point2f rightPt = cv::Point2f(px(0), px(1));
+        rightPt.y += rows;
+        switch (frame_bundle_2->at(0)->type_vec_[i]) {
+            case FeatureType::kCorner:
+                cv::rectangle(*img_hconcat, cv::Point2f(rightPt.x - 2, rightPt.y - 2),
+                                cv::Point2f(rightPt.x + 2, rightPt.y + 2),
+                                cv::Scalar(255, 0, 0), -1);
+                down_corner_num++;
+                break;
+            case FeatureType::kMapPoint:
+                break;
+            case FeatureType::kFixedLandmark:
+                break;
+            case FeatureType::kCornerSeed:
+            case FeatureType::kCornerSeedConverged:
+                break;
+            case FeatureType::kMapPointSeed:
+            case FeatureType::kMapPointSeedConverged:
+                break;
+            default:
+                break;
+        }
+    }
+
+    std::vector<std::pair<size_t, size_t>> matches_ref_cur;
+    getFeatureMatches(
+        *frame_bundle_1->at(0), *frame_bundle_2->at(0), &matches_ref_cur);
+    for (size_t i = 0; i < matches_ref_cur.size(); ++i) {
+        size_t first_index = matches_ref_cur[i].first;
+        size_t second_index = matches_ref_cur[i].second;
+        const auto& left_p = frame_bundle_1->at(0)->px_vec_.col(first_index);
+        const auto& right_p = frame_bundle_2->at(0)->px_vec_.col(second_index);
+        cv::Point2f rightPt = cv::Point2f(right_p(0), right_p(1));
+        rightPt.y += rows;
+        cv::line(
+            *img_hconcat,
+            cv::Point2f(left_p(0), left_p(1)),
+            rightPt,
+            cv::Scalar(0, 0, 200), 0.1);
+    }
+    std::cout
+        << "up_corner_num = " << up_corner_num
+        << ", down_corner_num = " << down_corner_num
+        <<" ,  matches size() = " << matches_ref_cur.size()
+        << std::endl;
+}
+
+void drawFeaturesAndshowHconcat(const FrameBundlePtr &frame_bundle, cv::Mat* img_hconcat) {
+    CHECK_NOTNULL(img_hconcat);
+    auto &img_1 = frame_bundle->at(0)->img_pyr_[0];
+    auto &img_2 = frame_bundle->at(1)->img_pyr_[0];
+    cv::hconcat(img_1, img_2, *img_hconcat);
+    cv::cvtColor(*img_hconcat, *img_hconcat, cv::COLOR_GRAY2RGB);
+    int left_corner_num = 0;
+    int right_corner_num = 0;
+    for (size_t i = 0; i < frame_bundle->at(0)->num_features_; ++i) {
+        const auto& px = frame_bundle->at(0)->px_vec_.col(i);
+        switch (frame_bundle->at(0)->type_vec_[i]) {
+            case FeatureType::kCorner:
+                cv::rectangle(*img_hconcat, cv::Point2f(px(0) - 2, px(1) - 2),
+                                cv::Point2f(px(0) + 2, px(1) + 2),
+                                cv::Scalar(0, 255, 0), -1);
+                left_corner_num++;
+                break;
+            case FeatureType::kMapPoint:
+                break;
+            case FeatureType::kFixedLandmark:
+                break;
+            case FeatureType::kCornerSeed:
+            case FeatureType::kCornerSeedConverged:
+                break;
+            case FeatureType::kMapPointSeed:
+            case FeatureType::kMapPointSeedConverged:
+                break;
+            default:
+                break;
+        }
+    }
+    int cols = img_1.cols;
+    for (size_t i = 0; i < frame_bundle->at(1)->num_features_; ++i) {
+        const auto& px = frame_bundle->at(1)->px_vec_.col(i);
+        cv::Point2f rightPt = cv::Point2f(px(0), px(1));
+        rightPt.x += cols;
+        switch (frame_bundle->at(1)->type_vec_[i]) {
+            case FeatureType::kCorner:
+                // cv::circle(*img_hconcat, rightPt, 2, cv::Scalar(0, 255, 0), 2);
+                cv::rectangle(*img_hconcat, cv::Point2f(rightPt.x - 2, rightPt.y - 2),
+                                cv::Point2f(rightPt.x + 2, rightPt.y + 2),
+                                cv::Scalar(255, 0, 0), -1);
+                right_corner_num++;
+                break;
+            case FeatureType::kMapPoint:
+                break;
+            case FeatureType::kFixedLandmark:
+                break;
+            case FeatureType::kCornerSeed:
+            case FeatureType::kCornerSeedConverged:
+                break;
+            case FeatureType::kMapPointSeed:
+            case FeatureType::kMapPointSeedConverged:
+                break;
+            default:
+                break;
+        }
+    }
+    std::vector<std::pair<size_t, size_t>> matches_ref_cur;
+    getFeatureMatches(
+        *frame_bundle->at(0), *frame_bundle->at(1), &matches_ref_cur);
+    for (size_t i = 0; i < matches_ref_cur.size(); ++i) {
+        size_t first_index = matches_ref_cur[i].first;
+        size_t second_index = matches_ref_cur[i].second;
+        const auto& left_p = frame_bundle->at(0)->px_vec_.col(first_index);
+        const auto& right_p = frame_bundle->at(1)->px_vec_.col(second_index);
+        cv::Point2f rightPt = cv::Point2f(right_p(0), right_p(1));
+        rightPt.x += cols;
+        cv::line(
+            *img_hconcat,
+            cv::Point2f(left_p(0), left_p(1)),
+            rightPt,
+            cv::Scalar(0, 0, 200), 0.1);
+    }
+    std::cout
+        << "left_corner_num = " << left_corner_num
+        << ", right_corner_num = " << right_corner_num
+        << std::endl;
+}
+
+void getFeatureMatches(const Frame& frame1,
+                       const Frame& frame2,
+                       std::vector<std::pair<size_t, size_t>>* matches_12) {
+    CHECK_NOTNULL(matches_12);
+    // Create lookup-table with track-ids from frame 1.
+    std::unordered_map<int, size_t> trackid_slotid_map;
+    for (size_t i = 0; i < frame1.num_features_; ++i) {
+        if(frame1.type_vec_.at(i) != FeatureType::kCorner) {
+            continue;
+        }
+        int track_id_1 = frame1.track_id_vec_(i);
+        if (track_id_1 >= 0) trackid_slotid_map[track_id_1] = i;
+    }
+    // Create list of matches.
+    matches_12->reserve(frame2.num_features_);
+    for (size_t i = 0; i < frame2.num_features_; ++i) {
+        int track_id_2 = frame2.track_id_vec_(i);
+        if (track_id_2 >= 0) {
+            const auto it = trackid_slotid_map.find(track_id_2);
+            if (it != trackid_slotid_map.end()) {
+                matches_12->push_back(std::make_pair(it->second, i));
+            }
+        }
+    }
+}
+
+
 double getAngleAtPixelUsingHistogram(const cv::Mat& img,
                                      const Eigen::Vector2i& px,
                                      const size_t halfpatch_size) {

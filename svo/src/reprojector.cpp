@@ -59,6 +59,7 @@ void Reprojector::reprojectFrames(const FramePtr& cur_frame,
         candidates_.clear();
         for (const FramePtr& ref_frame : visible_kfs) {
             for (size_t i = 0; i < ref_frame->num_features_; ++i) {
+                // GBA 中的特征点都是设定为 fixed 的???
                 if (!isFixedLandmark(ref_frame->type_vec_[i])) {
                     continue;
                 }

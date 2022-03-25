@@ -112,9 +112,23 @@ double PoseOptimizer::evaluateErrorImpl(const Transformation& T_imu_world,
 
     for (const FramePtr& frame : frame_bundle_->frames_) {
         const Transformation T_cam_imu = frame->T_cam_imu();
-
+        bool only_fix_landmark = false;
+        size_t num_fix_landmark = 0;
+        for (size_t i = 0; i < frame->num_features_; ++i) {
+            if(isFixedLandmark(frame->type_vec_.at(i))) {
+                num_fix_landmark++;
+            }
+        }
+        std::cout<<"num_fix_landmark = " << num_fix_landmark<<std::endl;
+        only_fix_landmark = (num_fix_landmark > 30);
+        if(only_fix_landmark) {
+            assert(0);
+        }
         // compute residual and update normal equation
         for (size_t i = 0; i < frame->num_features_; ++i) {
+            if(!isFixedLandmark(frame->type_vec_.at(i)) && only_fix_landmark) {
+                continue;
+            }
             Position xyz_world;
             if (frame->landmark_vec_[i] != nullptr) {
                 xyz_world = frame->landmark_vec_[i]->pos_;

@@ -32,6 +32,9 @@ DepthFilter::DepthFilter(const DepthFilterOptions& options,
     sec_feature_detector_.reset();
     if (options_.extra_map_points) {
         DetectorOptions sec_detector_options = detector_options;
+        // 深度滤波器内部的第二个特征提取器 
+        // 这里有个坑!!! 这里不管怎样, 调用了kShiTomasi取提特征点,提取的类型都设定为 KMapPoint 了
+        // 调用 ShiTomasiGradDetector 提取的类型设定了 Corner 和 边特征
         sec_detector_options.detector_type = DetectorType::kShiTomasi;
         sec_feature_detector_ = feature_detection_utils::makeDetector(
             sec_detector_options, cams->getCameraShared(0));

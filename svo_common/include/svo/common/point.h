@@ -95,7 +95,7 @@ class Point {
                                 //!bundle adjustment graph?
     int64_t last_ba_update_ =
         -1;  //!< Timestamp of last estimate in bundle adjustment.
-    static std::atomic_uint64_t global_map_value_version_;
+    static std::atomic<std::uint64_t> global_map_value_version_;
 
     /// Default constructor.
     Point(const Eigen::Vector3d& pos);

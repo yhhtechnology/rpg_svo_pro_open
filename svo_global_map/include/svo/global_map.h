@@ -312,7 +312,7 @@ class GlobalMap {
             imu_meas_since_cur_start_kf_.begin(), imu_meas.begin(),
             imu_meas.end());
     }
-    // Start new accumulation: called when a new keyframe is added
+    // Start new accumulation: called when a new keyframe is added (只有有关键帧时候才会触发)
     inline void startNewAccumulation(const int new_start_kf_id) {
         if (imu_cur_start_kf_id_ != -1) {
             from_id_to_imu_meas_map_[imu_cur_start_kf_id_] =

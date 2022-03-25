@@ -23,6 +23,7 @@
   <depend>svo_test_utils</depend>
   <depend>vikit_ros</depend>
   <depend>vikit_solver</depend>
+  <!-- <depend>svo_tracker</depend> -->
   
   <test_depend>gtest</test_depend>
 </package>

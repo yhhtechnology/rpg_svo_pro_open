@@ -183,7 +183,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {
@@ -210,10 +210,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
 bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
     VLOG(40) << "New Frame Bundle received: " << frame_bundle->getBundleId();
     CHECK_EQ(frame_bundle->size(), cams_->numCameras());
-
-    // ---------------------------------------------------------------------------
     // Prepare processing.
-
     if (set_start_) {
         // Temporary copy rotation prior. TODO(cfo): fix this.
         Quaternion R_imu_world = R_imu_world_;
@@ -224,11 +221,9 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         setInitialPose(frame_bundle);
         stage_ = Stage::kInitializing;
     }
-
     if (stage_ == Stage::kPaused) {
         return false;
     }
-
     if (options_.trace_statistics) {
         SVO_LOG("timestamp", frame_bundle->at(0)->getTimestampNSec());
         SVO_START_TIMER("frontend_time");
@@ -237,12 +232,9 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         }
     }
     timer_.start();
-
-    // ---------------------------------------------------------------------------
     // Add to pipeline.
     new_frames_ = frame_bundle;
     ++frame_counter_;
-
 #ifdef SVO_GLOBAL_MAP
     if (global_map_ && imu_handler_ && last_frames_) {
         ImuMeasurements imu_meas_since_last;
@@ -255,7 +247,6 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         global_map_->accumulateIMUMeasurements(imu_meas_since_last);
     }
 #endif
-
     // for scale check
     double svo_dist_first_two_kfs = -1;
     double opt_dist_first_two_kfs = -1;
@@ -279,8 +270,8 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
                                                      timestamp_backend_latest_);
         }
 
-        bundle_adjustment_->loadMapFromBundleAdjustment(
-            new_frames_, last_frames_, map_, have_motion_prior_);
+        // bundle_adjustment_->loadMapFromBundleAdjustment(
+        //     new_frames_, last_frames_, map_, have_motion_prior_);
 
         if (bundle_adjustment_->getNumFrames() > 0 && have_motion_prior_) {
             bundle_adjustment_->getLatestSpeedBiasPose(
@@ -304,7 +295,6 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
             }
         }
     }
-
     // handle motion prior
     if (have_motion_prior_) {
         have_rotation_prior_ = true;
@@ -350,7 +340,6 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
 
     // Perform tracking.
     update_res_ = processFrameBundle();
-
     // We start the backend first, since it is the most time crirical
     if (bundle_adjustment_) {
 #ifdef SVO_LOOP_CLOSING
@@ -367,7 +356,7 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         }
 #endif
         VLOG(40) << "Call bundle adjustment.";
-        bundle_adjustment_->bundleAdjustment(new_frames_);
+        // bundle_adjustment_->bundleAdjustment(new_frames_);
     }
 
     // Information exchange between loop closing and global map
@@ -394,8 +383,14 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         // Set flag in bundle. Before we only set each frame individually.
         new_frames_->setKeyframe();
         last_kf_time_sec_ = new_frames_->at(0)->getTimestampSec();
+        // FramePtr last_rm_kf = nullptr;
+        // map_->getLastRemovedKF(&last_rm_kf);
         FramePtr last_rm_kf = nullptr;
-        map_->getLastRemovedKF(&last_rm_kf);
+        if(last_frames_ &&
+            (last_frames_->at(0)->is_keyframe_ || last_frames_->at(1)->is_keyframe_)) {
+            last_rm_kf = last_frames_->at(0);
+        }
+        // FrameBundlePtr last_frames_;
 #ifdef SVO_LOOP_CLOSING
         if (lc_ && last_rm_kf) {
             // if we removed any keyframe,
@@ -406,10 +401,12 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
 #endif
 #ifdef SVO_GLOBAL_MAP
         if (global_map_) {
-            global_map_->startNewAccumulation(new_frames_->at(0)->id());
+            // global_map_->startNewAccumulation(new_frames_->at(0)->id());
+            global_map_->startNewAccumulation(last_frames_->at(0)->id());
             // it can happen that no keyframe is removed yet
             if (last_rm_kf) {
                 if (isBackendValid() && backend_scale_initialized_) {
+                    // global_map_->addKeyframe(last_rm_kf);
                     global_map_->addKeyframe(last_rm_kf);
                 }
                 if (!global_map_has_initial_ba_) {
@@ -432,14 +429,12 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
 #endif
     // ---------------------------------------------------------------------------
     // Finish pipeline.
-
     if (last_frames_) {
         // Set translation motion prior for next frame.
         t_lastimu_newimu_ =
             new_frames_->at(0)->T_imu_world().getRotation().rotate(
                 new_frames_->at(0)->imuPos() - last_frames_->at(0)->imuPos());
     }
-
     // Statistics.
     acc_frame_timings_.push_back(timer_.stop());
     num_obs_last_ =
@@ -467,17 +462,14 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         VLOG(2) << "Tracking failed: RELOCALIZE.";
         CHECK(stage_ == Stage::kTracking || stage_ == Stage::kInitializing ||
               stage_ == Stage::kRelocalization);
-
         // Let's try to relocalize with respect to the last keyframe:
         reloc_keyframe_ = map_->getLastKeyframe();
         CHECK_NOTNULL(reloc_keyframe_.get());
-
         // Reset pose to previous frame to avoid crazy jumps.
         if (stage_ == Stage::kTracking && last_frames_) {
             for (size_t i = 0; i < last_frames_->size(); ++i)
                 new_frames_->at(i)->T_f_w_ = last_frames_->at(i)->T_f_w_;
         }
-
         // Reset if we tried many times unsuccessfully to relocalize.
         if (stage_ == Stage::kRelocalization &&
             relocalization_n_trials_ >= options_.relocalization_max_trials) {
@@ -486,7 +478,6 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
             set_reset_ = true;
             backend_reinit_ = true;
         }
-
         // Set stage.
         stage_ = Stage::kRelocalization;
         tracking_quality_ = TrackingQuality::kInsufficient;
@@ -639,8 +630,8 @@ size_t FrameHandlerBase::projectMapInFrame() {
                 *new_frames_->at(camera_idx),
                 cur_reprojector->options_.max_n_global_kfs,
                 &overlap_kfs_global);
-            overlap_kfs_.at(camera_idx)
-                .insert(overlap_kfs_.at(camera_idx).end(),
+            overlap_kfs_.at(camera_idx).insert(
+                        overlap_kfs_.at(camera_idx).end(),
                         std::make_move_iterator(overlap_kfs_global.begin()),
                         std::make_move_iterator(overlap_kfs_global.end()));
         }
@@ -768,6 +759,7 @@ void FrameHandlerBase::optimizeStructure(const FrameBundle::Ptr& frames,
     if (options_.trace_statistics) {
         SVO_START_TIMER("point_optimizer");
     }
+    // 相当于优化了当前帧能观测到的地图点
     for (const FramePtr& frame : frames->frames_) {
         bool optimize_on_sphere = false;
         if (frame->cam()->getType() == Camera::Type::kOmni)

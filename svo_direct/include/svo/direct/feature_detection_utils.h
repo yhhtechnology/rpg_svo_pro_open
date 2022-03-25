@@ -128,6 +128,19 @@ void drawFeatures(const Frame& frame,
                   const bool only_matched_features,
                   cv::Mat* img_rgb);
 
+void getFeatureMatches(const Frame& frame1,
+                       const Frame& frame2,
+                       std::vector<std::pair<size_t, size_t>>* matches_12);
+
+void drawFeaturesAndshowHconcat(const FrameBundlePtr &frame_bundle, cv::Mat* img_hconcat);
+
+void drawFeaturesAndshowVconcat(const FrameBundlePtr &frame_bundle_1,
+    const FrameBundlePtr &frame_bundle_2,
+    cv::Mat* img_hconcat);
+
+
+void drawFeaturesAndshow(const Frame& frame, cv::Mat* img_rgb);
+
 double getAngleAtPixelUsingHistogram(const cv::Mat& img,
                                      const Eigen::Vector2i& px,
                                      const size_t halfpatch_size);
