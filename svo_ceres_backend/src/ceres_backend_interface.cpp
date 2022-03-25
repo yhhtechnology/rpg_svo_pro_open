@@ -447,6 +447,7 @@ bool CeresBackendInterface::addStatesAndInertialMeasurementsToBackend(
                    << frame_bundle->getMinTimestampNanoseconds();
         return false;
     }
+    frame_bundle->imu_measurements_deque_ = imu_measurements;
 
     // introduce a state for the frame in the backend --------------------------
     if (!backend_.addStates(frame_bundle, imu_measurements,

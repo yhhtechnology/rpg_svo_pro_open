@@ -12,9 +12,20 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <std_msgs/Header.h>
+#include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/Image.h>
+#include <nav_msgs/Path.h>
+#include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
+
 #include <tf/tf.h>
 #include <ros/package.h>
 #include <cv_bridge/cv_bridge.h>
@@ -41,6 +52,8 @@
 #include <rpg_common/pose.h>
 
 namespace {
+nav_msgs::Path path;
+
 void publishLineList(
     ros::Publisher& pub,
     const rpg::Aligned<std::vector, Eigen::Matrix<float, 1, 6>>& links,
@@ -162,6 +175,8 @@ Visualizer::Visualizer(const std::string& trace_dir,
     // Init ROS Marker Publishers
     pub_frames_ = pnh_.advertise<visualization_msgs::Marker>("keyframes", 10);
     pub_points_ = pnh_.advertise<visualization_msgs::Marker>("points", 10000);
+
+    pub_imu_path_ = pnh_.advertise<nav_msgs::Path>("path", 1000);
     pub_imu_pose_ = pnh_.advertise<geometry_msgs::PoseWithCovarianceStamped>(
         "pose_imu", 10);
     pub_info_ = pnh_.advertise<svo_msgs::Info>("info", 10);
@@ -236,12 +251,11 @@ void Visualizer::publishImuPose(const Transformation& T_world_imu,
                                 const int64_t timestamp_nanoseconds) {
     if (pub_imu_pose_.getNumSubscribers() == 0) return;
     VLOG(100) << "Publish IMU Pose";
-
     Eigen::Quaterniond q = T_world_imu.getRotation().toImplementation();
     Eigen::Vector3d p = T_world_imu.getPosition();
     geometry_msgs::PoseWithCovarianceStampedPtr msg_pose(
         new geometry_msgs::PoseWithCovarianceStamped);
-    msg_pose->header.seq = trace_id_;
+    // msg_pose->header.seq = trace_id_;
     msg_pose->header.stamp = ros::Time().fromNSec(timestamp_nanoseconds);
     msg_pose->header.frame_id = svo::Visualizer::kWorldFrame;
     msg_pose->pose.pose.position.x = p[0];
@@ -254,6 +268,34 @@ void Visualizer::publishImuPose(const Transformation& T_world_imu,
     for (size_t i = 0; i < 36; ++i)
         msg_pose->pose.covariance[i] = Covariance(i % 6, i / 6);
     pub_imu_pose_.publish(msg_pose);
+}
+void Visualizer::pubIMUPath(const NavState &cur_imu_state) {
+    std_msgs::Header header;
+    header.frame_id = "world";
+    header.stamp = ros::Time().fromNSec(cur_imu_state.nano_timestamp_);
+    nav_msgs::Odometry odometry;
+    odometry.header = header;
+    odometry.header.frame_id = "world";
+    odometry.child_frame_id = "world";
+    odometry.pose.pose.position.x = cur_imu_state.p_w_imu_(0);
+    odometry.pose.pose.position.y = cur_imu_state.p_w_imu_(1);
+    odometry.pose.pose.position.z = cur_imu_state.p_w_imu_(2);
+    odometry.pose.pose.orientation.x = cur_imu_state.q_w_imu_.x();
+    odometry.pose.pose.orientation.y = cur_imu_state.q_w_imu_.y();
+    odometry.pose.pose.orientation.z = cur_imu_state.q_w_imu_.z();
+    odometry.pose.pose.orientation.w = cur_imu_state.q_w_imu_.w();
+    odometry.twist.twist.linear.x = cur_imu_state.linear_speed_(0);
+    odometry.twist.twist.linear.y = cur_imu_state.linear_speed_(1);
+    odometry.twist.twist.linear.z = cur_imu_state.linear_speed_(2);
+    // pub_odometry.publish(odometry);
+    geometry_msgs::PoseStamped pose_stamped;
+    pose_stamped.header = header;
+    pose_stamped.header.frame_id = "world";
+    pose_stamped.pose = odometry.pose.pose;
+    path.header = header;
+    path.header.frame_id = "world";
+    path.poses.push_back(pose_stamped);
+    pub_imu_path_.publish(path);
 }
 
 void Visualizer::publishCameraPoses(const FrameBundlePtr& frame_bundle,
@@ -429,7 +471,6 @@ void Visualizer::visualizeMarkers(const FrameBundlePtr& frame_bundle,
         frames_to_visualize.push_back(frame);
         publishMapRegion(frames_to_visualize);
     }
-
     if (publish_seeds_) publishSeeds(map);
     if (publish_seeds_uncertainty_) publishSeedsUncertainty(map);
     if (publish_active_keyframes_) {

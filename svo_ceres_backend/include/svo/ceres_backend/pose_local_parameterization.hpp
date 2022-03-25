@@ -5,7 +5,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- *
+ * 
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -42,8 +42,7 @@
 
 #pragma diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-// Eigen 3.2.7 uses std::binder1st and std::binder2nd which are deprecated since
-// c++11
+// Eigen 3.2.7 uses std::binder1st and std::binder2nd which are deprecated since c++11
 // Fix is in 3.3 devel (http://eigen.tuxfamily.org/bz/show_bug.cgi?id=872).
 #include <ceres/ceres.h>
 #pragma diagnostic pop
@@ -60,89 +59,90 @@ namespace ceres_backend {
 /// Perturbation:
 /// dx[0] - dx[2] translation
 /// dx[3] - dx[5] axis angle perturbation
-class PoseLocalParameterization : public ceres::LocalParameterization,
-                                  public LocalParamizationAdditionalInterfaces {
+class PoseLocalParameterization :
+    public ceres::LocalParameterization,
+    public LocalParamizationAdditionalInterfaces
+{
  public:
-    /// \brief Trivial destructor.
-    virtual ~PoseLocalParameterization() = default;
 
-    /// \brief Generalization of the addition operation,
-    ///        x_plus_delta = Plus(x, delta)
-    ///        with the condition that Plus(x, 0) = x.
-    /// @param[in] x Variable.
-    /// @param[in] delta Perturbation.
-    /// @param[out] x_plus_delta Perturbed x.
-    virtual bool Plus(const double* x,
-                      const double* delta,
-                      double* x_plus_delta) const;
+  /// \brief Trivial destructor.
+  virtual ~PoseLocalParameterization() = default;
 
-    /// \brief Computes the minimal difference between a variable x and a
-    ///        perturbed variable x_plus_delta.
-    /// @param[in] x Variable.
-    /// @param[in] x_plus_delta Perturbed variable.
-    /// @param[out] delta minimal difference.
-    /// \return True on success.
-    virtual bool Minus(const double* x,
-                       const double* x_plus_delta,
-                       double* delta) const;
+  /// \brief Generalization of the addition operation,
+  ///        x_plus_delta = Plus(x, delta)
+  ///        with the condition that Plus(x, 0) = x.
+  /// @param[in] x Variable.
+  /// @param[in] delta Perturbation.
+  /// @param[out] x_plus_delta Perturbed x.
+  virtual bool Plus(const double* x, const double* delta,
+                    double* x_plus_delta) const;
 
-    /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-    /// @param[in] x Variable.
-    /// @param[out] jacobian The Jacobian.
-    virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  /// \brief Computes the minimal difference between a variable x and a
+  ///        perturbed variable x_plus_delta.
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  virtual bool Minus(const double* x, const double* x_plus_delta,
+                     double* delta) const;
 
-    /// \brief Computes the Jacobian from minimal space to naively
-    /// overparameterised
-    /// space as used by ceres. It is the inverse of the plusJacobian.
-    /// @param[in] x Variable.
-    /// @param[out] jacobian the Jacobian (dimension minDim x dim).
-    /// \return True on success.
-    virtual bool ComputeLiftJacobian(const double* x, double* jacobian) const;
+  /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
+  /// @param[in] x Variable.
+  /// @param[out] jacobian The Jacobian.
+  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
 
-    // provide these as static for easy use elsewhere:
+  /// \brief Computes the Jacobian from minimal space to naively overparameterised
+  /// space as used by ceres. It is the inverse of the plusJacobian.
+  /// @param[in] x Variable.
+  /// @param[out] jacobian the Jacobian (dimension minDim x dim).
+  /// \return True on success.
+  virtual bool ComputeLiftJacobian(const double* x, double* jacobian) const;
 
-    /// \brief Generalization of the addition operation,
-    ///        x_plus_delta = Plus(x, delta)
-    ///        with the condition that Plus(x, 0) = x.
-    /// @param[in] x Variable.
-    /// @param[in] delta Perturbation.
-    /// @param[out] x_plus_delta Perturbed x.
-    static bool plus(const double* x,
-                     const double* delta,
-                     double* x_plus_delta);
+  // provide these as static for easy use elsewhere:
 
-    /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-    /// @param[in] x Variable.
-    /// @param[out] jacobian The Jacobian.
-    static bool plusJacobian(const double* x, double* jacobian);
+  /// \brief Generalization of the addition operation,
+  ///        x_plus_delta = Plus(x, delta)
+  ///        with the condition that Plus(x, 0) = x.
+  /// @param[in] x Variable.
+  /// @param[in] delta Perturbation.
+  /// @param[out] x_plus_delta Perturbed x.
+  static bool plus(const double* x, const double* delta, double* x_plus_delta);
 
-    /// \brief Computes the minimal difference between a variable x and a
-    ///        perturbed variable x_plus_delta
-    /// @param[in] x Variable.
-    /// @param[in] x_plus_delta Perturbed variable.
-    /// @param[out] delta minimal difference.
-    /// \return True on success.
-    static bool minus(const double* x,
-                      const double* x_plus_delta,
-                      double* delta);
+  /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
+  /// @param[in] x Variable.
+  /// @param[out] jacobian The Jacobian.
+  static bool plusJacobian(const double* x, double* jacobian);
 
-    /// \brief Computes the Jacobian from minimal space to naively
-    ///        overparameterised space as used by ceres.
-    /// @param[in] x Variable.
-    /// @param[out] jacobian the Jacobian (dimension minDim x dim).
-    /// \return True on success.
-    static bool liftJacobian(const double* x, double* jacobian);
+  /// \brief Computes the minimal difference between a variable x and a
+  ///        perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x, const double* x_plus_delta, double* delta);
 
-    /// \brief The parameter block dimension.
-    virtual int GlobalSize() const { return 7; }
+  /// \brief Computes the Jacobian from minimal space to naively
+  ///        overparameterised space as used by ceres.
+  /// @param[in] x Variable.
+  /// @param[out] jacobian the Jacobian (dimension minDim x dim).
+  /// \return True on success.
+  static bool liftJacobian(const double* x, double* jacobian);
 
-    /// \brief The parameter block local dimension.
-    virtual int LocalSize() const { return 6; }
+  /// \brief The parameter block dimension.
+  virtual int GlobalSize() const
+  {
+    return 7;
+  }
 
-    // added convenient check
-    bool VerifyJacobianNumDiff(const double* x,
-                               double* jacobian,
-                               double* jacobianNumDiff);
+  /// \brief The parameter block local dimension.
+  virtual int LocalSize() const
+  {
+    return 6;
+  }
+
+  // added convenient check
+  bool VerifyJacobianNumDiff(const double* x, double* jacobian,
+                             double* jacobianNumDiff);
 };
 
 }  // namespace ceres_backend

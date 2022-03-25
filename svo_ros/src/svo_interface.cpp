@@ -4,11 +4,12 @@
 
 #include <svo_ros/svo_factory.h>
 #include <svo_ros/visualizer.h>
-#include <svo/common/frame.h>
 #include <svo/map.h>
 #include <svo/imu_handler.h>
+#include <svo/common/frame.h>
 #include <svo/common/camera.h>
 #include <svo/common/conversions.h>
+#include <svo/common/imu_calibration.h>
 #include <svo/frame_handler_mono.h>
 #include <svo/frame_handler_stereo.h>
 #include <svo/frame_handler_array.h>
@@ -49,8 +50,8 @@ SvoInterface::SvoInterface(const PipelineType& pipeline_type,
     : nh_(nh),
       pnh_(private_nh),
       pipeline_type_(pipeline_type),
-      set_initial_attitude_from_gravity_(
-          vk::param<bool>(pnh_, "set_initial_attitude_from_gravity", true)),
+    //   set_initial_attitude_from_gravity_(
+    //       vk::param<bool>(pnh_, "set_initial_attitude_from_gravity", true)),
       automatic_reinitialization_(
           vk::param<bool>(pnh_, "automatic_reinitialization", false)) {
     switch (pipeline_type) {
@@ -122,7 +123,7 @@ SvoInterface::SvoInterface(const PipelineType& pipeline_type,
         LOG(FATAL) << "You have to enable global map in cmake";
 #endif
     }
-
+    g_w_ = Eigen::Vector3d(0, 0, imu_handler_->imu_calib_.gravity_magnitude);
     svo_->start();
 }
 
@@ -166,10 +167,10 @@ void SvoInterface::publishResults(const std::vector<cv::Mat>& images,
     visualizer_->publishSvoInfo(svo_.get(), timestamp_nanoseconds);
     switch (svo_->stage()) {
         case Stage::kTracking: {
-            Eigen::Matrix<double, 6, 6> covariance;
-            covariance.setZero();
-            visualizer_->publishImuPose(svo_->getLastFrames()->get_T_W_B(),
-                                        covariance, timestamp_nanoseconds);
+            // Eigen::Matrix<double, 6, 6> covariance;
+            // covariance.setZero();
+            // visualizer_->publishImuPose(svo_->getLastFrames()->get_T_W_B(),
+            //                             covariance, timestamp_nanoseconds);
             visualizer_->publishCameraPoses(svo_->getLastFrames(),
                                             timestamp_nanoseconds);
             visualizer_->visualizeMarkers(svo_->getLastFrames(),
@@ -296,7 +297,6 @@ bool SvoInterface::setImuPrior(const int64_t timestamp_nanoseconds) {
 
 void SvoInterface::monoCallback(const sensor_msgs::ImageConstPtr& msg) {
     if (idle_) return;
-
     cv::Mat image;
     try {
         image = cv_bridge::toCvCopy(msg)->image;
@@ -314,9 +314,8 @@ void SvoInterface::monoCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
 
     imageCallbackPreprocessing(msg->header.stamp.toNSec());
-
     processImageBundle(images, msg->header.stamp.toNSec());
-
+    updateLastetState(msg->header.stamp.toNSec());
     publishResults(images, msg->header.stamp.toNSec());
 
     if (svo_->stage() == Stage::kPaused && automatic_reinitialization_)
@@ -342,15 +341,12 @@ void SvoInterface::stereoCallback(const sensor_msgs::ImageConstPtr& msg0,
             << "Could not align gravity! Attempting again in next iteration.";
         return;
     }
-
     imageCallbackPreprocessing(msg0->header.stamp.toNSec());
-
     processImageBundle({img0, img1}, msg0->header.stamp.toNSec());
+    updateLastetState(msg0->header.stamp.toNSec());
     publishResults({img0, img1}, msg0->header.stamp.toNSec());
-
     if (svo_->stage() == Stage::kPaused && automatic_reinitialization_)
         svo_->start();
-
     imageCallbackPostprocessing();
 }
 
@@ -362,10 +358,39 @@ void SvoInterface::imuCallback(const sensor_msgs::ImuConstPtr& msg) {
                                       msg->linear_acceleration.y,
                                       msg->linear_acceleration.z);
     const ImuMeasurement m(msg->header.stamp.toSec(), omega_imu, lin_acc_imu);
-    if (imu_handler_)
+    if (imu_handler_) {
         imu_handler_->addImuMeasurement(m);
-    else
+    } else {
         SVO_ERROR_STREAM("SvoNode has no ImuHandler");
+    }
+    if(frontend_stabel_){
+        // 1. Make sure all imu measurements are used
+        // 2. To keep stable output frequency
+        // 3. How to set window_states_?(TODO)
+        NavState cur_state, smooth_state;
+        cur_state.nano_timestamp_ = static_cast<uint64_t>(msg->header.stamp.toNSec());
+        if(getLastestImuPose(m, &cur_state)) {
+            // // smooth output
+            // bool flag = false;
+            // if(smoothImuPoseOutput(cur_state, &smooth_state, &flag)) {
+            //     if(flag) {
+            //         Transformation T_world_imu
+            //             = Transformation(smooth_state.q_w_imu_, smooth_state.p_w_imu_);
+            //         visualizer_->publishImuPose(
+            //             T_world_imu, smooth_state.pose_cov_, smooth_state.nano_timestamp_);
+            //         visualizer_->pubIMUPath(smooth_state);
+            //     } else {
+            //         Transformation T_world_imu = Transformation(cur_state.q_w_imu_, cur_state.p_w_imu_);
+            //         visualizer_->publishImuPose(
+            //             T_world_imu, cur_state.pose_cov_, cur_state.nano_timestamp_);
+            //         visualizer_->pubIMUPath(cur_state);
+            //     }
+            // }
+            Transformation T_world_imu = Transformation(cur_state.q_w_imu_, cur_state.p_w_imu_);
+            visualizer_->publishImuPose(T_world_imu, cur_state.pose_cov_, cur_state.nano_timestamp_);
+            visualizer_->pubIMUPath(cur_state);
+        }
+    }
 }
 
 void SvoInterface::inputKeyCallback(const std_msgs::StringConstPtr& key_input) {
@@ -401,7 +426,7 @@ void SvoInterface::inputKeyCallback(const std_msgs::StringConstPtr& key_input) {
 void SvoInterface::subscribeImu() {
     imu_thread_ = std::unique_ptr<std::thread>(
         new std::thread(&SvoInterface::imuLoop, this));
-    sleep(3);
+    // sleep(3);
 }
 
 void SvoInterface::subscribeImage() {
@@ -460,7 +485,6 @@ void SvoInterface::stereoLoop() {
     ros::NodeHandle nh(nh_, "image_thread");
     ros::CallbackQueue queue;
     nh.setCallbackQueue(&queue);
-
     // subscribe to cam msgs
     std::string cam0_topic(
         vk::param<std::string>(pnh_, "cam0_topic", "/cam0/image_raw"));
@@ -478,6 +502,196 @@ void SvoInterface::stereoLoop() {
     while (ros::ok() && !quit_) {
         queue.callAvailable(ros::WallDuration(0.1));
     }
+}
+
+void SvoInterface::updateLastetState(int64_t timestamp_nanosecond){
+    if(svo_->getLastFrames()->imu_measurements_deque_.size() > 0) {
+        ImuMeasurement imu_measurement;
+        imu_measurement = svo_->getLastFrames()->imu_measurements_deque_.at(0);
+        Transformation T_world_imu = svo_->getLastFrames()->get_T_W_B();
+        Eigen::Vector3d speed, gyr_bias, acc_bias;
+        svo_->getLastFrames()->getIMUState(&speed, &gyr_bias, &acc_bias);
+        {
+            std::lock_guard<std::mutex> lock(update_lastest_state_lock_);
+            lastest_state_.nano_timestamp_ = static_cast<uint64_t>(timestamp_nanosecond);
+            lastest_state_.q_w_imu_ = T_world_imu.getRotation().toImplementation();
+            lastest_state_.p_w_imu_ = T_world_imu.getPosition();
+            lastest_state_.gyr_bias_ = gyr_bias;
+            lastest_state_.acc_bias_ = acc_bias;
+            lastest_state_.linear_speed_ = speed;
+            lastest_state_.linear_acceleration_ = imu_measurement.linear_acceleration_;
+            lastest_state_.angular_speed_ = imu_measurement.angular_velocity_;
+            if(!frontend_stabel_) {
+                frontend_stabel_ = true;
+            }
+        }
+    }
+}
+
+bool SvoInterface::getLastestImuPose(
+    const ImuMeasurement imu_measurement,
+    NavState *cur_state) {
+    std::lock_guard<std::mutex> lock(update_lastest_state_lock_);
+    if( cur_state->nano_timestamp_ <= lastest_state_.nano_timestamp_) {
+        return false;
+    }
+    double dt = (cur_state->nano_timestamp_ - lastest_state_.nano_timestamp_) * 1e-9;
+    Eigen::Quaterniond q_w_i = lastest_state_.q_w_imu_;
+    q_w_i.normalize();
+    Eigen::Vector3d p_i = lastest_state_.p_w_imu_;
+    Eigen::Vector3d un_acc_0 = q_w_i * (
+        lastest_state_.linear_acceleration_ - lastest_state_.acc_bias_) - g_w_;
+    Eigen::Vector3d un_gyr =
+        0.5 * (lastest_state_.angular_speed_ + imu_measurement.angular_velocity_) - lastest_state_.gyr_bias_;
+
+    Eigen::Quaterniond q_w_j = q_w_i * deltaQ(un_gyr * dt);
+    q_w_j.normalize();
+    {
+        // std::cout<<"dt: "<<dt<<std::endl;
+        // std::cout<<"un_gyr: "<<un_gyr.transpose()<<std::endl;
+        // std::cout
+        //     <<"q_w_i = "
+        //     << q_w_i.w() << ", "
+        //     << q_w_i.x() << ", "
+        //     << q_w_i.y() << ", "
+        //     << q_w_i.z() << ", "
+        //     <<std::endl;
+        // std::cout
+        //     <<"q_w_j = "
+        //     << q_w_j.w() << ", "
+        //     << q_w_j.x() << ", "
+        //     << q_w_j.y() << ", "
+        //     << q_w_j.z() << ", "
+        //     <<std::endl;
+    }
+    Eigen::Vector3d un_acc_1 = q_w_j * (imu_measurement.linear_acceleration_ - lastest_state_.acc_bias_) - g_w_;
+    Eigen::Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
+    Eigen::Vector3d p_j = p_i + dt * lastest_state_.linear_speed_ + 0.5 * dt * dt * un_acc;
+    Eigen::Vector3d v_j = lastest_state_.linear_speed_ + un_acc * dt;
+    {
+        cur_state->q_w_imu_ = q_w_j;
+        cur_state->p_w_imu_ = p_j;
+        cur_state->gyr_bias_ = lastest_state_.gyr_bias_;
+        cur_state->acc_bias_ = lastest_state_.acc_bias_;
+        cur_state->linear_speed_ = v_j;
+        cur_state->linear_acceleration_ = imu_measurement.linear_acceleration_;
+        cur_state->angular_speed_ = imu_measurement.angular_velocity_;
+    }
+    lastest_state_ = *cur_state;
+    return true;
+}
+
+bool SvoInterface::smoothImuPoseOutput(
+    const NavState &cur_state, NavState *smooth_state, bool *flag) {
+    // TODO(yehonghua)
+    // static constexpr uint64_t window_gap = 1e7;
+    static constexpr uint64_t window_gap = 1e6; // window_gap = 1/hz*1e9
+    // if(window_states_.empty()) {
+    if(window_states_.size() < 10) {
+        *smooth_state = cur_state;
+        smooth_state->nano_timestamp_ = static_cast<uint64_t>(
+            std::round(smooth_state->nano_timestamp_ * 1.0 / window_gap)) * window_gap;
+        window_states_.push_back(*smooth_state);
+        std::cout<<"window_states_.empty()"<<std::endl;
+        *flag = false;
+        return false;
+    } else {
+        std::cout<<"window_states_.size()"<< window_states_.size()<<std::endl;
+        uint64_t last_standard_time = window_states_.back().nano_timestamp_;
+        if (cur_state.nano_timestamp_ <= last_standard_time) {
+            // default value
+            NavState nav_state;
+            nav_state.nano_timestamp_ = 0;
+            *smooth_state = nav_state;
+            std::cout<<"cur_state.nano_timestamp_ <= last_standard_time"<<std::endl;
+            return false;
+        }
+        double time_gap = (static_cast<double>(cur_state.nano_timestamp_) -
+            last_standard_time) / static_cast<double>(window_gap);
+        int interp_num = static_cast<int>(std::round(time_gap));
+        *flag = processSmoothNavState(cur_state, smooth_state);
+        if (interp_num >= 1) {
+            std::list<NavState> interp_nav_states;
+            const NavState &s_ns = window_states_.back();
+            const NavState &e_ns = *smooth_state;
+            // smooth_ns 基于 smooth_ns 进行结果插值
+            for (int i = 1; i <= interp_num; ++i) {
+                NavState n_state;
+                // 严格保证了定位查询窗口中相邻两帧的定位时间戳偏差10ms
+                uint64_t c_time = last_standard_time + window_gap * i;
+                navStateInterp(s_ns, e_ns, i / time_gap, &n_state);
+                n_state.nano_timestamp_ = c_time;
+                interp_nav_states.push_back(n_state);
+            }
+            // 将处理后的定位结果 interp_nav_states 插入 定位窗口中
+            window_states_.insert(window_states_.end(),
+                                  interp_nav_states.begin(),
+                                  interp_nav_states.end());
+            size_t window_size = 1000; // "window_size": 200,
+            while (window_states_.size() > window_size) {
+                window_states_.erase(window_states_.begin());
+            }
+            *smooth_state = window_states_.back();
+        }
+    }
+    return true;
+}
+
+bool SvoInterface::processSmoothNavState(
+    const NavState &cur_state, NavState *smooth_state) {
+    static constexpr size_t base_num = 10;
+    if (window_states_.size() < base_num) {
+        (*smooth_state) = cur_state;
+        std::cout<<"processSmoothNavState window_states_.size() < base_num!!!"<<std::endl;
+        return false;
+    }
+    NavState lastest_state, last_state;
+    size_t index = 0;
+    for (auto iter = window_states_.rbegin(); iter != window_states_.rend();
+         ++iter) {
+        if (index == 0) {
+            lastest_state = *iter;
+        }
+        if (index == base_num - 1) {
+            last_state = *iter;
+            break;
+        }
+        ++index;
+    }
+    double factor = 1.0 * (cur_state.nano_timestamp_ - last_state.nano_timestamp_) /
+                    (lastest_state.nano_timestamp_ - last_state.nano_timestamp_);
+    if (factor <= 1.0) {
+        (*smooth_state) = cur_state;
+        std::cout<<"processSmoothNavState factor <= 1.0!!!"<<std::endl;
+        return false;
+    }
+    NavState predict_state;
+    predict_state.nano_timestamp_ = cur_state.nano_timestamp_;
+    // printNavstate(last_state);
+    // printNavstate(lastest_state);
+    navStateInterp(last_state, lastest_state, factor, &predict_state);
+    // printNavstate(predict_state);
+    smooth_state->nano_timestamp_ = cur_state.nano_timestamp_;
+    navStateInterp(predict_state, cur_state, 0.6, smooth_state);
+    return true;
+}
+
+void SvoInterface::navStateInterp(const NavState &s_ns,
+                                         const NavState &e_ns,
+                                         double factor,
+                                         NavState *ns) {
+    ns->q_w_imu_ = s_ns.q_w_imu_.slerp(factor, e_ns.q_w_imu_);
+    ns->q_w_imu_.normalize();
+    ns->p_w_imu_ = s_ns.p_w_imu_ + (e_ns.p_w_imu_ - s_ns.p_w_imu_) * factor;
+    ns->linear_speed_ =
+        s_ns.linear_speed_ + (e_ns.linear_speed_ - s_ns.linear_speed_) * factor;
+    ns->linear_acceleration_ =
+        s_ns.linear_acceleration_ +
+        (e_ns.linear_acceleration_ - s_ns.linear_acceleration_) * factor;
+    ns->angular_speed_ =
+        s_ns.angular_speed_ + (e_ns.angular_speed_ - s_ns.angular_speed_) * factor;
+    // TODO(yehonghua) How about covariance ?
+    ns->pose_cov_ = e_ns.pose_cov_;
 }
 
 }  // namespace svo

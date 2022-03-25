@@ -19,6 +19,7 @@
 #include <svo/common/point.h>
 #include <svo/common/seed.h>
 #include <svo/common/conversions.h>
+#include <svo/common/imu_calibration.h>
 
 namespace svo {
 
@@ -290,6 +291,14 @@ class Frame {
         imu_gyr_bias_ = gyr_bias;
         imu_acc_bias_ = acc_bias;
     }
+    inline void getIMUState(Eigen::Vector3d* imu_vel_w,
+                            Eigen::Vector3d* gyr_bias,
+                            Eigen::Vector3d* acc_bias)
+    {
+      *imu_vel_w = imu_vel_w_;
+      *gyr_bias = imu_gyr_bias_;
+      *acc_bias = imu_acc_bias_;
+    }
 
     /// Camera model.
     inline const CameraPtr& cam() const { return cam_; }
@@ -474,6 +483,14 @@ class FrameBundle {
         }
     }
 
+    inline void getIMUState(Eigen::Vector3d* imu_vel_w,
+                            Eigen::Vector3d* gyr_bias,
+                            Eigen::Vector3d* acc_bias)
+    {
+      CHECK(!frames_.empty());
+      return frames_[0]->getIMUState(imu_vel_w, gyr_bias, acc_bias);
+    }
+
     void setKeyframe() { is_keyframe_ = true; }
 
     bool isKeyframe() const { return is_keyframe_; }
@@ -505,6 +522,7 @@ class FrameBundle {
     Eigen::Matrix<int64_t, 1, Eigen::Dynamic> imu_timestamps_ns_;
     Eigen::Matrix<double, 6, Eigen::Dynamic>
         imu_measurements_;  // Order: [acc, gyro]
+    ImuMeasurements imu_measurements_deque_;
 
     // Make class iterable:
     typedef FrameList::value_type value_type;
