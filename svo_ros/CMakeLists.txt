@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 2.8.3)
 find_package(catkin_simple REQUIRED)
 find_package(rostest REQUIRED)
 catkin_simple()
+
 find_package(OpenCV REQUIRED)
 
 set(USE_GTSAM false)

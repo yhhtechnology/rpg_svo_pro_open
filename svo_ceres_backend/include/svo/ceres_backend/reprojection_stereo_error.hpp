@@ -1,49 +1,12 @@
-/*********************************************************************************
- *  OKVIS - Open Keyframe-based Visual-Inertial SLAM
- *  Copyright (c) 2015, Autonomous Systems Lab / ETH Zurich
- *  Copyright (c) 2016, ETH Zurich, Wyss Zurich, Zurich Eye
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- * 
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *   * Neither the name of Autonomous Systems Lab / ETH Zurich nor the names of
- *     its contributors may be used to endorse or promote products derived from
- *     this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *
- *  Created on: Aug 30, 2013
- *      Author: Stefan Leutenegger (s.leutenegger@imperial.ac.uk)
- *    Modified: Zurich Eye
- *********************************************************************************/
-
 /**
- * @file ceres/ReprojectionError.hpp
- * @brief Header file for the ReprojectionError class.
+ * @file ceres/ReprojectionStereoError.hpp
+ * @brief Header file for the ReprojectionStereoError class.
  * @author Stefan Leutenegger
  */
 
 #pragma once
-
 #include <memory>
-
 #include <ceres/ceres.h>
-
 #include "svo/common/camera.h"
 #include "svo/ceres_backend/error_interface.hpp"
 #include "svo/ceres_backend/pose_local_parameterization.hpp"
@@ -53,33 +16,24 @@ namespace svo {
 namespace ceres_backend {
 
 /// \brief The 2D keypoint reprojection error.
-class ReprojectionError : public ReprojectionErrorBase
+class ReprojectionStereoError : public ReprojectionErrorBase
 {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   /// \brief The base class type.
   typedef ceres::SizedCostFunction<2, 7, 4, 7> base_t;
-
   /// \brief Number of residuals (2)
   static const int kNumResiduals = 2;
-
   /// \brief The keypoint type (measurement type).
   typedef Eigen::Vector2d keypoint_t;
+  ReprojectionStereoError(){}
 
-  /// \brief Default constructor.
-  ReprojectionError(){}
-
-  /// \brief Construct with measurement and information matrix
-  /// @param[in] cameraGeometry The underlying camera geometry.
-  /// @param[in] measurement The measurement.
-  /// @param[in] information The information (weight) matrix.
-  ReprojectionError(CameraConstPtr cameraGeometry,
+  ReprojectionStereoError(CameraConstPtr cameraGeometry,
                     const measurement_t& measurement,
                     const covariance_t& information);
 
-  /// \brief Trivial destructor.
-  virtual ~ReprojectionError()
+  virtual ~ReprojectionStereoError()
   {
   }
 

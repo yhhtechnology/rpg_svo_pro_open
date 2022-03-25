@@ -80,6 +80,8 @@ class Frame {
     SeedStates invmu_sigma2_a_b_vec_;  ///< Vector containing all necessary
                                        ///information for seed update.
     std::vector<bool> in_ba_graph_vec_;
+    std::vector<bool> is_stereo_match_vec_;
+
     // }
 
     FloatType seed_mu_range_;

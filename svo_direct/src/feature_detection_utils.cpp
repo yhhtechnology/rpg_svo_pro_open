@@ -900,6 +900,32 @@ void mergeGrids(const OccupandyGrid2D& grid1, OccupandyGrid2D* grid2) {
     }
 }
 
+void getFeatureMatches(const Frame& frame1,
+                       const Frame& frame2,
+                       std::vector<std::pair<size_t, size_t>>* matches_12) {
+    CHECK_NOTNULL(matches_12);
+    // Create lookup-table with track-ids from frame 1.
+    std::unordered_map<int, size_t> trackid_slotid_map;
+    for (size_t i = 0; i < frame1.num_features_; ++i) {
+        if(frame1.type_vec_.at(i) != FeatureType::kCorner) {
+            continue;
+        }
+        int track_id_1 = frame1.track_id_vec_(i);
+        if (track_id_1 >= 0) trackid_slotid_map[track_id_1] = i;
+    }
+    // Create list of matches.
+    matches_12->reserve(frame2.num_features_);
+    for (size_t i = 0; i < frame2.num_features_; ++i) {
+        int track_id_2 = frame2.track_id_vec_(i);
+        if (track_id_2 >= 0) {
+            const auto it = trackid_slotid_map.find(track_id_2);
+            if (it != trackid_slotid_map.end()) {
+                matches_12->push_back(std::make_pair(it->second, i));
+            }
+        }
+    }
+}
+
 namespace angle_hist {
 
 void angleHistogram(const cv::Mat& img,

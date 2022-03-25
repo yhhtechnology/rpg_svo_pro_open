@@ -424,6 +424,18 @@ void Visualizer::visualizeMarkers(const FrameBundlePtr& frame_bundle,
         static_cast<uint64_t>(frame_bundle->getMinTimestampNanoseconds());
     visualizeHexacopter(frame->T_f_w_, timestamp);
     publishTrajectoryPoint(frame->pos(), timestamp, trace_id_);
+    const Eigen::Vector3d& pos_in_vision = frame->pos();
+    const Eigen::Quaterniond& rot_in_vision =
+        frame->T_world_cam().getEigenQuaternion();
+    static std::ofstream of("traj.txt");
+    of << timestamp << " " << pos_in_vision[0] << " "  // x
+       << pos_in_vision[1] << " "                      // y
+       << pos_in_vision[2] << " "                      // z
+       << rot_in_vision.x() << " "                     // qx
+       << rot_in_vision.y() << " "                     // qy
+       << rot_in_vision.z() << " "                     // qz
+       << rot_in_vision.w()                            // qw
+       << std::endl;
     if (frame->isKeyframe() || publish_map_every_frame_) {
         std::vector<FramePtr> frames_to_visualize = close_kfs;
         frames_to_visualize.push_back(frame);

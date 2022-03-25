@@ -347,8 +347,7 @@ void CeresBackendInterface::addLandmarksAndObservationsToBackend(
             }
 
             // check if we have enough observations. Might not be the case if
-            // seed
-            // original frame was already dropped.
+            // seed original frame was already dropped.
             if (point->obs_.size() < options_.min_num_obs) {
                 VLOG(10) << "Point with less than " << options_.min_num_obs
                          << " observations! Only have " << point->obs_.size();

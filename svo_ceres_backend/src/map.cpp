@@ -270,6 +270,7 @@ bool Map::isMinimalJacobianCorrect(ceres::ResidualBlockId residual_block_id,
     return isCorrect;
 }
 
+// CERES 优化的参数块
 // Add a parameter block to the map
 bool Map::addParameterBlock(
     std::shared_ptr<ceres_backend::ParameterBlock> parameter_block,
@@ -293,6 +294,7 @@ bool Map::addParameterBlock(
 
     // also add to ceres problem
     switch (parameterization) {
+        // Trivial : 目前没看到用这个的
         case Parameterization::Trivial: {
             problem_->AddParameterBlock(parameter_block->parameters(),
                                         parameter_block->dimension());

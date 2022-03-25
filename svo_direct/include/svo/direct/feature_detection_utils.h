@@ -138,6 +138,10 @@ void nonmax_3x3(const std::vector<Eigen::Vector2i>& corners,
 
 void mergeGrids(const OccupandyGrid2D& grid1, OccupandyGrid2D* grid2);
 
+void getFeatureMatches(const Frame& frame1,
+                       const Frame& frame2,
+                       std::vector<std::pair<size_t, size_t>>* matches_12);
+
 // Compute an angle histogram.
 namespace angle_hist {
 

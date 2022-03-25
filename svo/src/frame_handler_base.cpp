@@ -129,10 +129,41 @@ FrameHandlerBase::FrameHandlerBase(
     }
     // init modules
     reprojectors_.reserve(cams_->getNumCameras());
+
     for (size_t camera_idx = 0; camera_idx < cams_->getNumCameras();
          ++camera_idx) {
         reprojectors_.emplace_back(
             new Reprojector(reprojector_options, camera_idx));
+    }
+    if(cams_->getNumCameras() == 2) {
+        Eigen::Matrix3d R_ci_0;
+        Eigen::Matrix3d R_ci_1;
+        Eigen::Vector3d t_ci_0;
+        Eigen::Vector3d t_ci_1;
+        R_ci_0 = cams_->get_T_C_B(0).getRotation().getRotationMatrix();
+        t_ci_0 = cams_->get_T_C_B(0).getPosition();
+        R_ci_1 = cams_->get_T_C_B(1).getRotation().getRotationMatrix();
+        t_ci_1 = cams_->get_T_C_B(1).getPosition();
+        Eigen::VectorXd intrinsics_0 = cams_->getCameraShared(0)->getIntrinsicParameters();
+        Eigen::VectorXd intrinsics_1 = cams_->getCameraShared(1)->getIntrinsicParameters();
+        cv::Mat K1 = cv::Mat::eye(3, 3, CV_32F);
+        K1.at<float>(0, 0) = intrinsics_0(0);
+        K1.at<float>(1, 1) = intrinsics_0(1);
+        K1.at<float>(0, 2) = intrinsics_0(2);
+        K1.at<float>(1, 2) = intrinsics_0(3);
+        cv::Mat K2 = cv::Mat::eye(3, 3, CV_32F);
+        K2.at<float>(0, 0) = intrinsics_1(0);
+        K2.at<float>(1, 1) = intrinsics_1(1);
+        K2.at<float>(0, 2) = intrinsics_1(2);
+        K2.at<float>(1, 2) = intrinsics_1(3);
+        // 目前只针对针孔相机模型
+        F12_ = ComputeE12andF12(R_ci_0, R_ci_1, t_ci_0, t_ci_1, K1, K2, &E12_);
+        std::cout
+            <<"F12_ = \n"
+            <<F12_
+            <<"\n E12_ = \n"
+            <<E12_
+            <<"\n";
     }
     SparseImgAlignOptions img_align_options;
     img_align_options.max_level = options_.img_align_max_level;
@@ -183,7 +214,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {
@@ -677,6 +708,60 @@ size_t FrameHandlerBase::projectMapInFrame() {
     // Effectively clear the points that were discarded by the reprojectors
     for (auto point_vec : trash_points)
         for (auto point : point_vec) map_->safeDeletePoint(point);
+
+    // stereo match feature
+    {
+        vk::Timer stereo_match_process_time;
+        stereo_match_process_time.start();
+        size_t good_match = 0;
+        size_t general_match = 0;
+        size_t error_match = 0;
+        std::vector<std::pair<size_t, size_t>> matches_ref_cur;
+        // 需要注意不同层 ??
+        feature_detection_utils::getFeatureMatches(*new_frames_->at(0), *new_frames_->at(1), &matches_ref_cur);
+        for (size_t i = 0; i < matches_ref_cur.size(); ++i) {
+            size_t first_index = matches_ref_cur[i].first;
+            size_t second_index = matches_ref_cur[i].second;
+            const auto& left_p = new_frames_->at(0)->px_vec_.col(first_index);
+            const auto& right_p = new_frames_->at(1)->px_vec_.col(second_index);
+            cv::Point2f kp1 = cv::Point2f(left_p(0), left_p(1));
+            cv::Point2f kp2 = cv::Point2f(right_p(0), right_p(1));
+            double tol_1 = 3.84;
+            // level_vec_ : 0 到 n-1 层
+            float cur_level = static_cast<float>(1 << new_frames_->at(1)->level_vec_[second_index]);
+            // tol_1 = tol_1 * cur_level;
+            tol_1 = tol_1 * cur_level * cur_level;
+                // ORBSLAM2 : return dsqr < 3.84 * pKF2->mvLevelSigma2[kp2.octave]; 尺度是1.2, 即 1/1.2
+                // SVO2 的尺度是2, 即 1/2
+            float dsqr;
+            if(CheckDistEpipolarLine(kp1, kp2, F12_, tol_1, &dsqr)) {
+                good_match++;
+                new_frames_->at(0)->is_stereo_match_vec_.at(first_index) = true;
+                new_frames_->at(1)->is_stereo_match_vec_.at(second_index) = true;
+            } else {
+                error_match++;
+            }
+            // std::cout<<"("<<dsqr
+            // <<","
+            // <<new_frames_->at(0)->level_vec_[first_index]<<","
+            // <<new_frames_->at(1)->level_vec_[second_index]
+            // <<",tol_1:"<<tol_1
+            // <<",cur_level:"<<cur_level
+            // <<") ";
+        }
+        // printf("\n");
+        stereo_match_process_time.stop();
+        std::cout
+            << "(totalSmatch = " << matches_ref_cur.size()
+            << ", good_match = " << good_match
+            // << ", general_match = " << general_match
+            << ", error_match = " << error_match
+            <<" )"
+            << std::endl
+            << "process_time(ms) = " << std::to_string(stereo_match_process_time.getMilliseconds())
+            << std::endl
+            ;
+    }
 
     // Count the total number of trials and matches for all reprojectors
     Reprojector::Statistics cumul_stats_;

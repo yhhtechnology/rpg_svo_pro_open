@@ -12,6 +12,8 @@
 #include <queue>
 #include <functional>
 #include <unordered_map>
+#include <opencv2/core.hpp>
+#include <eigen3/Eigen/Core>
 
 #include <vikit/timer.h>
 #include <vikit/ringbuffer.h>
@@ -513,6 +515,85 @@ class FrameHandlerBase
     // status for loss
     bool loss_without_correction_ = false;
     double last_good_tracking_time_sec_ = -1.0;
+
+    cv::Mat F12_;
+    cv::Mat E12_;
+    bool CheckDistEpipolarLine(const cv::Point2f &kp1,
+                                        const cv::Point2f &kp2,
+                                        const cv::Mat &F12,
+                                        const double &tol,
+                                        float *dsqr_out = nullptr) {
+        // Epipolar line in second image l = x1'F12 = [a b c]
+        const float a = kp1.x * F12.at<float>(0, 0) +
+                        kp1.y * F12.at<float>(1, 0) + F12.at<float>(2, 0);
+        const float b = kp1.x * F12.at<float>(0, 1) +
+                        kp1.y * F12.at<float>(1, 1) + F12.at<float>(2, 1);
+        const float c = kp1.x * F12.at<float>(0, 2) +
+                        kp1.y * F12.at<float>(1, 2) + F12.at<float>(2, 2);
+        const float num = a * kp2.x + b * kp2.y + c;
+        const float den = a * a + b * b;
+        if (den == 0) return false;
+        // 点到线的距离 d = sqrt((Ax0+By0+C)^2/(A^2+B^2))
+        const float dsqr = num * num / den;
+        if(dsqr_out) { *dsqr_out = dsqr; }
+        return dsqr < tol;
+    }
+
+    // cv::Mat ComputeE12andF12(
+    //     const Eigen::Matrix3d &Rw1,
+    //     const Eigen::Matrix3d &Rw2,
+    //     const Eigen::Vector3d &tw1,
+    //     const Eigen::Vector3d &tw2,
+    //     const cv::Mat &K1,
+    //     const cv::Mat &K2,
+    //     cv::Mat *E12) {
+    //     Eigen::Matrix3d tmp_R12 = Rw1.transpose() * Rw2;
+    //     Eigen::Vector3d tmp_t12 = Rw1.transpose() * (tw2 - tw1);
+    //     cv::Mat R12 = EigenMatrix3d2Mat(tmp_R12);
+    //     cv::Mat t12 = EigenVector3d2Mat(tmp_t12);
+    //     cv::Mat t12x = SkewSymmetricMatrix(t12);
+    //     *E12 = t12x * R12;
+    //     return K1.t().inv() * (*E12) * K2.inv();
+    // }
+
+    cv::Mat ComputeE12andF12(
+        const Eigen::Matrix3d &R1w,
+        const Eigen::Matrix3d &R2w,
+        const Eigen::Vector3d &t1w,
+        const Eigen::Vector3d &t2w,
+        const cv::Mat &K1,
+        const cv::Mat &K2,
+        cv::Mat *E12) {
+        Eigen::Matrix3d tmp_R12 = R1w * R2w.transpose();
+        Eigen::Vector3d tmp_t12 = t1w - R1w * R2w.transpose() * t2w;
+        cv::Mat R12 = EigenMatrix3d2Mat(tmp_R12);
+        cv::Mat t12 = EigenVector3d2Mat(tmp_t12);
+        cv::Mat t12x = SkewSymmetricMatrix(t12);
+        *E12 = t12x * R12;
+        return K1.t().inv() * (*E12) * K2.inv();
+    }
+
+    static cv::Mat EigenMatrix3d2Mat(const Eigen::Matrix3d &m) {
+        cv::Mat cvMat(3,3,CV_32F);
+        for(int i=0;i<3;i++) {
+            for(int j=0; j<3; j++) {
+                cvMat.at<float>(i,j)=m(i,j);
+            }
+        }
+        return cvMat.clone();
+    }
+    static cv::Mat EigenVector3d2Mat(const Eigen::Vector3d &v) {
+        cv::Mat cvMat(3,1,CV_32F);
+        for(int i=0;i<3;i++) {
+            cvMat.at<float>(i)=v(i);
+        }
+        return cvMat.clone();
+    }
+    cv::Mat SkewSymmetricMatrix(const cv::Mat &v) {
+    return (cv::Mat_<float>(3, 3) << 0, -v.at<float>(2), v.at<float>(1),
+            v.at<float>(2), 0, -v.at<float>(0), -v.at<float>(1), v.at<float>(0),
+            0);
+    }
 };
 
 }  // namespace nslam

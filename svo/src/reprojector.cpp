@@ -305,6 +305,8 @@ void sortCandidatesByNumObs(Reprojector::Candidates& candidates) {
               });
 }
 
+// 将局部地图的特征点投影到当前帧
+
 void matchCandidates(const FramePtr& frame,
                      const size_t max_n_features_per_frame,
                      const bool affine_est_offset,
@@ -319,12 +321,10 @@ void matchCandidates(const FramePtr& frame,
     int i = 0;
     for (Reprojector::Candidate& candidate : candidates) {
         ++i;
-        size_t grid_index =
-            grid.getCellIndex(candidate.cur_px.x(), candidate.cur_px.y(), 1);
+        size_t grid_index = grid.getCellIndex(candidate.cur_px.x(), candidate.cur_px.y(), 1);
         if (max_n_features_per_frame > 0 && grid.isOccupied(grid_index)) {
             continue;
         }
-
         ++stats.n_trials;
         FeatureWrapper feature_wrapper = frame->getEmptyFeatureWrapper();
         if (matchCandidate(frame, candidate, matcher, feature_wrapper,
@@ -347,7 +347,6 @@ bool matchCandidate(const FramePtr& frame,
                     FeatureWrapper& feature,
                     const double seed_sigma2_thresh) {
     GradientVector grad_ref;
-
     // direct matching
     CHECK_NOTNULL(c.ref_frame.get());
     CHECK_LT(c.ref_index, c.ref_frame->num_features_);

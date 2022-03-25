@@ -245,8 +245,7 @@ bool align2D(const cv::Mat& cur_img,
             J[0] = 0.5 * (it[1] - it[-1]);
             J[1] = 0.5 * (it[ref_step] - it[-ref_step]);
 
-            // If not using the affine compensation, force the jacobian to be
-            // zero.
+            // If not using the affine compensation, force the jacobian to be zero.
             J[2] = affine_est_offset ? 1.0 : 0.0;
             J[3] = affine_est_gain ? -1.0 * it[0] : 0.0;
 
