@@ -20,6 +20,8 @@ set(HEADERS
   include/vikit/cameras/radial_tangential_distortion.h
   include/vikit/cameras/pinhole_projection.h
   include/vikit/cameras/implementation/pinhole_projection.hpp
+  include/vikit/cameras/unified_projection.h
+  include/vikit/cameras/implementation/unified_projection.hpp
   include/vikit/cameras/camera_geometry.h
   include/vikit/cameras/implementation/camera_geometry.hpp
   include/vikit/cameras/camera_factory.h

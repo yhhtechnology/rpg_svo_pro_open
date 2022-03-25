@@ -183,7 +183,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {

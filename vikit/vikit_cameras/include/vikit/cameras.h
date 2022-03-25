@@ -26,6 +26,9 @@ class CameraGeometry;
 template <typename DistrortionType>
 class PinholeProjection;
 
+template <typename DistrortionType>
+class UnifiedProjection;
+
 class AtanDistortion;
 class EquidistantDistortion;
 class NoDistortion;
@@ -37,6 +40,9 @@ typedef CameraGeometry<PinholeProjection<EquidistantDistortion>>
     PinholeEquidistantGeometry;
 typedef CameraGeometry<PinholeProjection<RadialTangentialDistortion>>
     PinholeRadTanGeometry;
+
+typedef CameraGeometry<UnifiedProjection<RadialTangentialDistortion>> UnifiedRadTanGeometry;
+
 class OmniGeometry;
-}  // namespace cameras
-}  // namespace vk
+} // namespace cameras
+} // namespace vk

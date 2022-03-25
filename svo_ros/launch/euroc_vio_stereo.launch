@@ -1,6 +1,7 @@
 <!-- Launch File for running svo with ceres backend from bag-file -->
 <launch>
-  <arg name="calib_file" default="$(find svo_ros)/param/calib/euroc_stereo.yaml"/>
+  <arg name="calib_file" default="$(find svo_ros)/param/calib/euroc_MEI_stereo.yaml"/>
+  <!-- <arg name="calib_file" default="$(find svo_ros)/param/calib/euroc_stereo.yaml"/> -->
 
   <!-- SVO node -->
   <node pkg="svo_ros" type="svo_node" name="svo" clear_params="true" output="screen" args="--v=0">
@@ -18,7 +19,7 @@
     <!--Parameters-->
     <rosparam file="$(find svo_ros)/param/vio_stereo.yaml" />
     <param name='runlc' value='true' />
-
+    <param name='trace_statistics' value='true' />
   </node>
 
   <!-- RVIZ -->
