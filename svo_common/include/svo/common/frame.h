@@ -19,6 +19,7 @@
 #include <svo/common/point.h>
 #include <svo/common/seed.h>
 #include <svo/common/conversions.h>
+#include <svo/common/imu_calibration.h>
 
 namespace svo {
 
@@ -37,7 +38,7 @@ class Frame {
     using SeedRefs = std::vector<SeedRef>;
 
     static int frame_counter_;  //!< Counts the number of created frames. Used
-                                //!to set the unique id.
+                                //! to set the unique id.
     int id_;                    //!< Unique id of the frame.
     BundleId bundle_id_;
     int nframe_index_ = -1;  //!< Storage index in NFrame.
@@ -49,12 +50,12 @@ class Frame {
     std::vector<std::pair<int, Position>,
                 Eigen::aligned_allocator<std::pair<int, Position> > >
         key_pts_;  //!< Five features and associated 3D points which are used to
-                   //!detect if two frames have overlapping field of view. store
-                   //!index + depth
+    //! detect if two frames have overlapping field of view. store
+    //! index + depth
     bool is_keyframe_ = false;  //!< Was this frames selected as keyframe?
     int last_published_ts_;     //!< Timestamp of last publishing.
     Quaternion R_imu_world_;  //!< IMU Attitude provided by *external* attitude
-                              //!extimator
+                              //! extimator
 
     int64_t timestamp_ =
         -1;  ///!< Timestamp of when the image was recorded in nanoseconds.
@@ -65,7 +66,7 @@ class Frame {
     // All vectors must have the same length/cols at all time!
     // {
     size_t num_features_ = 0u;  ///< the vectors below are initialized to the
-                                ///maximum number of feature-tracks
+                                /// maximum number of feature-tracks
     Keypoints px_vec_;          ///< Pixel Coordinates
     Bearings f_vec_;            ///< Bearing Vector
     Scores score_vec_;          ///< Keypoint detection scores
@@ -75,10 +76,10 @@ class Frame {
     Landmarks
         landmark_vec_;  ///< Reference to 3D point. Can contain nullpointers!
     TrackIds track_id_vec_;  ///< ID of every observed 3d point. -1 if no point
-                             ///assigned.
+                             /// assigned.
     SeedRefs seed_ref_vec_;  ///< Only for seeds during reprojection
     SeedStates invmu_sigma2_a_b_vec_;  ///< Vector containing all necessary
-                                       ///information for seed update.
+                                       /// information for seed update.
     std::vector<bool> in_ba_graph_vec_;
     // }
 
@@ -499,12 +500,12 @@ class FrameBundle {
 
     FrameList frames_;
 
-    /// IMU measurements since the last nframe (including the last IMU
-    /// measurement
+    /// IMU measurements since the last nframe (including the last IMU measurement
     /// of the previous edge for integration).
     Eigen::Matrix<int64_t, 1, Eigen::Dynamic> imu_timestamps_ns_;
-    Eigen::Matrix<double, 6, Eigen::Dynamic>
-        imu_measurements_;  // Order: [acc, gyro]
+    // Eigen::Matrix<double, 6, Eigen::Dynamic>
+    //     imu_measurements_;  // Order: [acc, gyro]
+    ImuMeasurements imu_measurements_;
 
     // Make class iterable:
     typedef FrameList::value_type value_type;

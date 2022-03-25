@@ -92,19 +92,19 @@ void CeresBackendInterface::loadMapFromBundleAdjustment(
         motion_detector_->setFrames(last_frames, new_frames);
     }
 
-    // Adding new state to backend ---------------------------------------------
-    if (addStatesAndInertialMeasurementsToBackend(new_frames)) {
-        last_added_nframe_imu_ = new_frames->getBundleId();
+    // // Adding new state to backend ---------------------------------------------
+    // if (addStatesAndInertialMeasurementsToBackend(new_frames)) {
+    //     last_added_nframe_imu_ = new_frames->getBundleId();
 
-        // Obtain motion prior
-        // ---------------------------------------------------
-        updateBundleStateWithBackend(new_frames, true);
-        have_motion_prior = true;
-    } else {
-        LOG(ERROR) << "Could not add frame bundle " << new_frames->getBundleId()
-                   << " to backend";
-        have_motion_prior = false;
-    }
+    //     // Obtain motion prior
+    //     // ---------------------------------------------------
+    //     updateBundleStateWithBackend(new_frames, true);
+    //     have_motion_prior = true;
+    // } else {
+    //     LOG(ERROR) << "Could not add frame bundle " << new_frames->getBundleId()
+    //                << " to backend";
+    //     have_motion_prior = false;
+    // }
 
     if (imu_handler_ && imu_handler_->options_.temporal_stationary_check) {
         IMUTemporalStatus imu_status = imu_handler_->checkTemporalStatus(
@@ -132,7 +132,7 @@ void CeresBackendInterface::loadMapFromBundleAdjustment(
         //! @todo store framebundles in map to solve problem
         for (FramePtr& keyframe : active_keyframes_) {
             DEBUG_CHECK(keyframe) << "Found nullptr keyframe";
-            updateFrameStateWithBackend(keyframe, false);
+            updateFrameStateWithBackend(keyframe, true);
             n_frames_updated++;
         }
         VLOG(3) << "Updated " << n_frames_updated << " frames in map.";
@@ -195,20 +195,23 @@ void CeresBackendInterface::bundleAdjustment(
     if (stop_thread_) {
         return;
     }
-
     // check for case when IMU measurements could not be added.
     if (last_added_nframe_imu_ == last_added_nframe_images_) {
         return;
     }
-
     /** Uncomment this for testing loop closure
      last_frame_ = frame_bundle->at(0);
      */
-
     std::lock_guard<std::mutex> lock(mutex_backend_);
 
     vk::Timer timer;
     timer.start();
+    const double current_frame_bundle_stamp = frame_bundle->getMinTimestampSeconds();
+    if (!backend_.addStates(frame_bundle, current_frame_bundle_stamp)) {
+        LOG(ERROR) << "Failed to add state. Will drop frames.";
+        return;
+    }
+
     // Checking for zero motion ------------------------------------------------
     bool velocity_prior_added = false;
     if (motion_detector_) {
@@ -448,12 +451,12 @@ bool CeresBackendInterface::addStatesAndInertialMeasurementsToBackend(
         return false;
     }
 
-    // introduce a state for the frame in the backend --------------------------
-    if (!backend_.addStates(frame_bundle, imu_measurements,
-                            current_frame_bundle_stamp)) {
-        LOG(ERROR) << "Failed to add state. Will drop frames.";
-        return false;
-    }
+    // // introduce a state for the frame in the backend --------------------------
+    // if (!backend_.addStates(frame_bundle, imu_measurements,
+    //                         current_frame_bundle_stamp)) {
+    //     LOG(ERROR) << "Failed to add state. Will drop frames.";
+    //     return false;
+    // }
 
     VLOG(10) << "Backend: Added " << imu_measurements.size() << " inertial "
                                                                 "measurements.";
@@ -690,6 +693,7 @@ void CeresBackendInterface::setImu(
     imu_parameters.rate = imu_handler_->imu_calib_.imu_rate;
     imu_parameters.delay_imu_cam = imu_handler_->imu_calib_.delay_imu_cam;
     backend_.addImu(imu_parameters);
+    backend_.setImu(imu_handler);
 }
 
 // Start timer for benchmarking

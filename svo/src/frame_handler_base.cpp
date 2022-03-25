@@ -183,7 +183,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {
@@ -243,11 +243,11 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
     new_frames_ = frame_bundle;
     ++frame_counter_;
 
+    const double cur_t_sec = new_frames_->getMinTimestampSeconds();
+    const double last_t_sec = last_frames_->getMinTimestampSeconds();
+    ImuMeasurements imu_meas_since_last;
 #ifdef SVO_GLOBAL_MAP
     if (global_map_ && imu_handler_ && last_frames_) {
-        ImuMeasurements imu_meas_since_last;
-        const double cur_t_sec = new_frames_->getMinTimestampSeconds();
-        const double last_t_sec = last_frames_->getMinTimestampSeconds();
         if (imu_handler_->waitTill(cur_t_sec)) {
             imu_handler_->getMeasurements(last_t_sec, cur_t_sec, false,
                                           imu_meas_since_last);
@@ -279,8 +279,24 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
                                                      timestamp_backend_latest_);
         }
 
+
         bundle_adjustment_->loadMapFromBundleAdjustment(
             new_frames_, last_frames_, map_, have_motion_prior_);
+        // if(last_frames_ && imu_meas_since_last.size() > 0) {
+        //     // get pre-integration T_lasttime_currenttime
+        //     Transformation T_lastimu_newimu = last_frames_->get_T_W_B();
+        //     Eigen::Matrix<double, 9, 1> speed_and_biases;
+        //     speed_and_biases.block<3, 1>(0, 0) = 
+        //         T_lastimu_newimu.getRotation().inverse() * last_frames_->at(0)->imu_vel_w_;
+        //     speed_and_biases.block<3, 1>(0, 0) =  last_frames_->at(0)->imu_gyr_bias_;
+        //     speed_and_biases.block<3, 1>(0, 0) =  last_frames_->at(0)->imu_acc_bias_;
+        //     imu_handler_->propagation(imu_meas_since_last,
+        //                             T_lastimu_newimu,
+        //                             speed_and_biases,
+        //                             cur_t_sec,
+        //                             last_t_sec);
+        // }
+        have_motion_prior_ = true;
 
         if (bundle_adjustment_->getNumFrames() > 0 && have_motion_prior_) {
             bundle_adjustment_->getLatestSpeedBiasPose(
@@ -309,6 +325,8 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
     if (have_motion_prior_) {
         have_rotation_prior_ = true;
         R_imu_world_ = new_frames_->get_T_W_B().inverse().getRotation();
+        q_world_imu_ = new_frames_->get_T_W_B().getRotation();
+        q_world_imu_.normalize();
         if (last_frames_) {
             T_newimu_lastimu_prior_ =
                 new_frames_->get_T_W_B().inverse() * last_frames_->get_T_W_B();
@@ -350,6 +368,26 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
 
     // Perform tracking.
     update_res_ = processFrameBundle();
+
+    // After refine the pose of new_frames  in processFrameBundle();
+    // we should update it to CERES
+    if (bundle_adjustment_ && have_motion_prior_) {
+        Transformation T_WS;
+        q_world_imu_ = new_frames_->get_T_W_B().getRotation();
+        q_world_imu_.normalize();
+        // if the frontend estimate is bad,
+        if (is_sparse_aligment_good_) {
+            T_WS = Transformation(q_world_imu_,
+                                  new_frames_->get_T_W_B().getPosition());
+        } else {
+            if (last_frames_) {
+                Transformation T_WS2 = last_frames_->get_T_W_B() * T_b0b1_;
+                T_WS = Transformation(q_world_imu_, T_WS2.getPosition());
+                printf("sparse aligment isnot good, use VelocityMode! \n");
+            }
+        }
+        bundle_adjustment_->set_T_WSInBackend(new_frames_->getBundleId(), T_WS);
+    }
 
     // We start the backend first, since it is the most time crirical
     if (bundle_adjustment_) {
@@ -438,6 +476,9 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         t_lastimu_newimu_ =
             new_frames_->at(0)->T_imu_world().getRotation().rotate(
                 new_frames_->at(0)->imuPos() - last_frames_->at(0)->imuPos());
+        // TODO(yehonghua)
+        T_b0b1_ =
+            last_frames_->get_T_W_B().inverse() * new_frames_->get_T_W_B();
     }
 
     // Statistics.
@@ -546,31 +587,8 @@ void FrameHandlerBase::setInitialPose(
                 cams_->get_T_C_B(i) *
                 Transformation(R_imu_world_, Vector3d::Zero());
         }
-    } else if (frame_bundle->imu_measurements_.cols() > 0) {
-        VLOG(40) << "Set initial pose: Use inertial measurements in frame to "
-                    "get gravity.";
-        const Vector3d g =
-            frame_bundle->imu_measurements_.topRows<3>().rowwise().sum();
-        const Vector3d z =
-            g.normalized();  // imu measures positive-z when static
-        // TODO: make sure z != -1,0,0
-        Vector3d p(1, 0, 0);
-        Vector3d p_alternative(0, 1, 0);
-        if (std::fabs(z.dot(p)) > std::fabs(z.dot(p_alternative)))
-            p = p_alternative;
-        Vector3d y = z.cross(p);  // make sure gravity is not in x direction
-        y.normalize();
-        const Vector3d x = y.cross(z);
-        Matrix3d C_imu_world;  // world unit vectors in imu coordinates
-        C_imu_world.col(0) = x;
-        C_imu_world.col(1) = y;
-        C_imu_world.col(2) = z;
-        Transformation T_imu_world(Quaternion(C_imu_world),
-                                   Eigen::Vector3d::Zero());
-        frame_bundle->set_T_W_B(T_imu_world.inverse());
-        VLOG(3) << "Initial Rotation = " << std::endl
-                << C_imu_world.transpose() << std::endl;
-    } else {
+    }
+    else {
         VLOG(40) << "Set initial pose: set such that T_imu_world is identity.";
         for (size_t i = 0; i < frame_bundle->size(); ++i) {
             frame_bundle->at(i)->T_f_w_ =
@@ -607,6 +625,25 @@ size_t FrameHandlerBase::sparseImageAlignment() {
         options_.img_align_max_num_features);
     size_t img_align_n_tracked =
         sparse_img_align_->run(last_frames_, new_frames_);
+    // TODO(yehonghua) : remove hardcode such as 20.
+    Transformation T_WS;
+    if (img_align_n_tracked < 20) {
+        is_sparse_aligment_good_ = false;
+        if (bundle_adjustment_) {
+            if (last_frames_) {
+                // VelocityMode
+                Transformation T_WS2 = last_frames_->get_T_W_B() * T_b0b1_;
+                T_WS = Transformation(q_world_imu_, T_WS2.getPosition());
+            } else {
+                T_WS = Transformation(q_world_imu_, Eigen::Vector3d(0, 0, 0));
+            }
+        } else {
+            T_WS = last_frames_->get_T_W_B() * T_b0b1_;
+        }
+        new_frames_->set_T_W_B(T_WS);
+    } else {
+        is_sparse_aligment_good_ = true;
+    }
 
     if (options_.trace_statistics) {
         SVO_STOP_TIMER("sparse_img_align");
@@ -1070,66 +1107,7 @@ void FrameHandlerBase::getMotionPrior(const bool /*use_velocity_in_frame*/) {
                            t_lastimu_newimu_)
                 .inverse();
         have_motion_prior_ = true;
-    } else if (new_frames_->imu_timestamps_ns_.cols() > 0) {
-        VLOG(40) << "Get motion prior from integrated IMU measurements.";
-        const Eigen::Matrix<int64_t, 1, Eigen::Dynamic>& imu_timestamps_ns =
-            new_frames_->imu_timestamps_ns_;
-        const Eigen::Matrix<double, 6, Eigen::Dynamic>& imu_measurements =
-            new_frames_->imu_measurements_;
-        Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();  // TODO!
-        const size_t num_measurements = imu_timestamps_ns.cols();
-        Quaternion delta_R;
-        for (size_t m_idx = 0u; m_idx < num_measurements - 1u; ++m_idx) {
-            const double delta_t_seconds =
-                (imu_timestamps_ns(m_idx + 1) - imu_timestamps_ns(m_idx)) *
-                common::conversions::kNanoSecondsToSeconds;
-            CHECK_LE(delta_t_seconds, 1e-12)
-                << "IMU timestamps need to be strictly increasing.";
-
-            const Eigen::Vector3d w =
-                imu_measurements.col(m_idx).tail<3>() - gyro_bias;
-            const Quaternion R_incr = Quaternion::exp(w * delta_t_seconds);
-            delta_R = delta_R * R_incr;
-        }
-        T_newimu_lastimu_prior_ =
-            Transformation(delta_R, t_lastimu_newimu_).inverse();
-        have_motion_prior_ = true;
     }
-    /*
-     else if(imu_handler_)
-     {
-     ImuMeasurements imu_measurements;
-     if(!imu_handler_->getMeasurements(
-     last_frames_->getTimestampSec(), new_frames_->getTimestampSec(), false,
-     imu_measurements))
-     return false;
-
-     PreintegratedImuMeasurement preint(
-     //      last_frames_->omega_bias_, last_frames_->omega_bias_); TODO: check
-     why this worked before
-     imuHandler()->getGyroscopeBias(), imuHandler()->getAccelerometerBias());
-     preint.addMeasurements(imu_measurements);
-
-     Vector3d t_last_new = t_lastimu_newimu_;
-     if(use_velocity_in_frame)
-     {
-     t_last_new =
-     preint.delta_t_ij_
-     + last_frames_->T_f_w_.getRotation().rotate(
-     last_frames_->velocity_*preint.dt_sum_
-     - Vector3d(0, 0,
-     -imu_handler_->imu_calib_.gravity_magnitude)*0.5*preint.dt_sum_*preint.dt_sum_);
-     }
-
-     Quaternion R_lastimu_newimu;
-     imu_handler_->getRelativeRotationPrior(
-     last_frames_->getTimestampSec(), new_frames_->getTimestampSec(), false,
-     R_lastimu_newimu);
-     T_newimu_lastimu_prior_ = Transformation(R_lastimu_newimu,
-     t_last_new).inverse();
-     return true;
-     }
-     */
     else if (options_.poseoptim_prior_lambda > 0 ||
              options_.img_align_prior_lambda_rot > 0 ||
              options_.img_align_prior_lambda_trans > 0) {

@@ -277,6 +277,13 @@ class CeresBackendInterface : public AbstractBundleAdjustment {
     void updateBundleStateWithBackend(const FrameBundlePtr& frames,
                                       const bool get_speed_bias);
 
+    void set_T_WSInBackend(const BundleId& bundle_id,
+                           const Transformation& T_WS) override {
+        bool success = backend_.set_T_WS(bundle_id, T_WS);
+        DEBUG_CHECK(success) << "Could not set T_WS for frame bundle "
+                             << bundle_id << " from backend";
+    }
+
     // Threading
     mutable std::condition_variable wait_condition_;
     mutable std::mutex mutex_backend_;

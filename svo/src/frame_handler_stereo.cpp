@@ -101,7 +101,8 @@ UpdateResult FrameHandlerStereo::processFrame() {
     }
 
     // STEP 3: Pose & Structure Optimization
-    if (bundle_adjustment_type_ != BundleAdjustmentType::kCeres) {
+    // if (bundle_adjustment_type_ != BundleAdjustmentType::kCeres) {
+    if (1) {
         n_tracked_features = optimizePose();
         if (n_tracked_features < options_.quality_min_fts) {
             return makeKeyframe();  // force stereo triangulation to recover

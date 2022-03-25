@@ -64,10 +64,12 @@
 
 namespace svo {
 
+
 // fwd:
 namespace ceres_backend {
 class MarginalizationError;
 class CeresIterationCallback;
+// class ImuHandler;
 }
 
 typedef std::shared_ptr<const FrameBundle> FrameBundleConstPtr;
@@ -177,6 +179,14 @@ class Estimator {
      */
     int addImu(const svo::ImuParameters& imu_parameters);
 
+    // Set the IMU and the parameters in backend
+    void setImu(
+        const std::shared_ptr<ImuHandler> imu_handler) {
+        imu_handler_ = imu_handler;
+        // std::cout
+            // << 
+    }
+
     /**
      * @brief Remove all cameras from the configuration
      */
@@ -196,7 +206,7 @@ class Estimator {
      * @return True if successful.
      */
     bool addStates(const FrameBundleConstPtr& frame_bundle,
-                   const ImuMeasurements& imu_measurements,
+                //    const ImuMeasurements& imu_measurements,
                    const double& timestamp);
 
     /**
@@ -516,6 +526,10 @@ class Estimator {
      */
     bool set_T_WS(BackendId pose_id, const Transformation& T_WS);
 
+    bool set_T_WS(const int32_t& bundle_id, const Transformation& T_WS) {
+        return set_T_WS(createNFrameId(bundle_id), T_WS);
+    }
+
     /**
      * @brief Set pose for a given pose ID.
      * @param[in] landmark_id ID of the landmark that should be changed.
@@ -674,6 +688,10 @@ class Estimator {
 
     //
     size_t min_num_3d_points_for_fixation_ = 10u;
+
+
+    // modules
+    std::shared_ptr<ImuHandler> imu_handler_;
 
  private:
     /**

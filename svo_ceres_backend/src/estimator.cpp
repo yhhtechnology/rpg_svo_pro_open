@@ -126,21 +126,20 @@ void Estimator::clearImus() { imu_parameters_.clear(); }
 
 // Add a pose to the state.
 bool Estimator::addStates(const FrameBundleConstPtr& frame_bundle,
-                          const ImuMeasurements& imu_measurements,
+                        //   const ImuMeasurements& imu_measurements,
                           const double& timestamp) {
     BackendId nframe_id = createNFrameId(frame_bundle->getBundleId());
-    VLOG(20) << "Adding state to estimator. Bundle ID: "
-             << frame_bundle->getBundleId() << " with backend-id: " << std::hex
-             << nframe_id << std::dec
-             << " num IMU measurements: " << imu_measurements.size();
-
     double last_timestamp = 0;
     Transformation T_WS;
     SpeedAndBias speed_and_bias;
+    ImuMeasurements imu_measurements;
 
     // initialization or propagate the IMU
     if (states_.ids.empty()) {
+        // imu_handler_->getMeasurementsContainingEdges(
+        //     timestamp, imu_measurements,true);
         if (is_reinit_) {
+            // TODO(someone) modified the strategy
             last_timestamp = reinit_timestamp_start_;
             speed_and_bias = reinit_speed_bias_;
             T_WS = reinit_T_WS_;
@@ -169,27 +168,25 @@ bool Estimator::addStates(const FrameBundleConstPtr& frame_bundle,
         // get the previous states
         BackendId T_WS_id = states_.ids.back();
         BackendId speed_and_bias_id = changeIdType(T_WS_id, IdType::ImuStates);
-        T_WS = std::static_pointer_cast<ceres_backend::PoseParameterBlock>(
-                   map_ptr_->parameterBlockPtr(T_WS_id.asInteger()))
-                   ->estimate();
-        speed_and_bias =
-            std::static_pointer_cast<ceres_backend::SpeedAndBiasParameterBlock>(
-                map_ptr_->parameterBlockPtr(speed_and_bias_id.asInteger()))
-                ->estimate();
-        //! @todo last_timestamp redundant because we already select imu
-        //!       measurements for specific timespan
-        int num_used_imu_measurements = ceres_backend::ImuError::propagation(
-            imu_measurements, imu_parameters_.at(0), T_WS, speed_and_bias,
-            last_timestamp, timestamp, nullptr, nullptr);
+        // T_WS = std::static_pointer_cast<ceres_backend::PoseParameterBlock>(
+        //            map_ptr_->parameterBlockPtr(T_WS_id.asInteger()))
+        //            ->estimate();
+        // speed_and_bias =
+        //     std::static_pointer_cast<ceres_backend::SpeedAndBiasParameterBlock>(
+        //         map_ptr_->parameterBlockPtr(speed_and_bias_id.asInteger()))
+        //         ->estimate();
+        // int num_used_imu_measurements = ceres_backend::ImuError::propagation(
+        //     imu_measurements, imu_parameters_.at(0), T_WS, speed_and_bias,
+        //     last_timestamp, timestamp, nullptr, nullptr);
+        // yhh
+        // T_WS = frame_bundle->
+        // speed_and_bias = 
         T_WS.getRotation().normalize();
-        //! @todo could check this sooner if we select IMU measurements as we do
-        //    DEBUG_CHECK(num_used_imu_measurements > 1) << "propagation
-        //    failed";
-        if (num_used_imu_measurements < 1) {
-            LOG(ERROR) << "numUsedImuMeasurements="
-                       << num_used_imu_measurements;
-            return false;
-        }
+        // imu_handler_->getMeasurements(last_timestamp, timestamp, true,
+        //                                 imu_measurements);
+        // imu_handler_.getClosestMeasurement(last_timestamp, imu_measurements);
+        // imu_handler_->getClosestMeasurement(last_timestamp, imu_measurements);
+
     }
 
     // check if id was used before

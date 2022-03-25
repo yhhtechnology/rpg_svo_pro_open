@@ -302,6 +302,8 @@ bool Map::addParameterBlock(
             problem_->AddParameterBlock(
                 parameter_block->parameters(), parameter_block->dimension(),
                 &homogeneous_point_local_parameterization_);
+            // TODO(yehonghua): should set according to the point quality
+            // problem_->SetParameterBlockConstant(parameter_block->parameters());
             parameter_block->setLocalParameterizationPtr(
                 &homogeneous_point_local_parameterization_);
             break;

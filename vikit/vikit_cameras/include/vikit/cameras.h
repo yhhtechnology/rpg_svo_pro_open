@@ -38,5 +38,5 @@ typedef CameraGeometry<PinholeProjection<EquidistantDistortion>>
 typedef CameraGeometry<PinholeProjection<RadialTangentialDistortion>>
     PinholeRadTanGeometry;
 class OmniGeometry;
-}  // namespace cameras
-}  // namespace vk
+} // namespace cameras
+} // namespace vk
