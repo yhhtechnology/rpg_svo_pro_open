@@ -365,8 +365,7 @@ bool updateSeed(const Frame& cur_frame,
 
     // Create wrappers
     FeatureWrapper ref_ftr = ref_frame.getFeatureWrapper(seed_index);
-    Eigen::Ref<SeedState> state =
-        ref_frame.invmu_sigma2_a_b_vec_.col(seed_index);
+    Eigen::Ref<SeedState> state = ref_frame.invmu_sigma2_a_b_vec_.col(seed_index);
 
     // check if point is visible in the current image
     Transformation T_cur_ref = cur_frame.T_f_w_ * ref_frame.T_f_w_.inverse();
@@ -380,7 +379,6 @@ bool updateSeed(const Frame& cur_frame,
         // check margin
         const Eigen::Vector2i pxi = px.cast<int>();
         const int boundary = 9;
-
         if (!cur_frame.cam()->isKeypointVisibleWithMargin(pxi, boundary))
             return false;
     }

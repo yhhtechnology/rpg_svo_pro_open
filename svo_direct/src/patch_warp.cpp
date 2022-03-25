@@ -17,6 +17,7 @@ namespace svo {
 namespace warp {
 
 // TODO(cfo) take inverse depth!
+// 计算两帧之间的仿射变换，用窗口的3个点做重投影变换
 void getWarpMatrixAffine(const CameraPtr& cam_ref,
                          const CameraPtr& cam_cur,
                          const Eigen::Ref<Keypoint>& px_ref,
@@ -26,7 +27,6 @@ void getWarpMatrixAffine(const CameraPtr& cam_ref,
                          const int level_ref,
                          AffineTransformation2* A_cur_ref) {
     CHECK_NOTNULL(A_cur_ref);
-
     // Compute affine warp matrix A_ref_cur
     const int kHalfPatchSize = 5;
     const Position xyz_ref = f_ref * depth_ref;
@@ -49,7 +49,6 @@ void getWarpMatrixAffine(const CameraPtr& cam_ref,
         xyz_du_ref *= depth_ref;
         xyz_dv_ref *= depth_ref;
     }
-
     Keypoint px_cur, px_du_cur, px_dv_cur;
     cam_cur->project3(T_cur_ref * xyz_ref, &px_cur);
     cam_cur->project3(T_cur_ref * xyz_du_ref, &px_du_cur);
@@ -96,6 +95,9 @@ void getWarpMatrixAffineHomography(const CameraPtr& cam_ref,
     A_cur_ref.col(1) = (px_dv_cur - px_cur) / kHalfPatchSize;
 }
 
+// 这个是啥理论 
+// 学习参考 : https://blog.csdn.net/luoshi006/article/details/80699720
+// 找到 cur 和 ref 中 patch 缩放一致的层
 int getBestSearchLevel(const AffineTransformation2& A_cur_ref,
                        const int max_level) {
     // Compute patch level in other image
@@ -115,14 +117,12 @@ bool warpAffine(const AffineTransformation2& A_cur_ref,
                 const int search_level,
                 const int halfpatch_size,
                 uint8_t* patch) {
-    Eigen::Matrix2f A_ref_cur =
-        A_cur_ref.inverse().cast<float>() * (1 << search_level);
+    Eigen::Matrix2f A_ref_cur = A_cur_ref.inverse().cast<float>() * (1 << search_level);
     if (std::isnan(A_ref_cur(0, 0))) {
         LOG(WARNING)
             << "Affine warp is NaN, probably camera has no translation";
         return false;
     }
-
     // Perform the warp on a larger patch.
     uint8_t* patch_ptr = patch;
     const Eigen::Vector2f px_ref_pyr = px_ref.cast<float>() / (1 << level_ref);

@@ -300,7 +300,7 @@ class ImuError
 
     mutable bool redo_ = true;
     ///< Keeps track of whether or not this redoPreintegration() needs to be
-    ///done.
+    /// done.
     mutable int redoCounter_ = 0;
     ///< Counts the number of preintegrations for statistics.
 

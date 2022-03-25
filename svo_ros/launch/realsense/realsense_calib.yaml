@@ -1,0 +1,76 @@
+cameras:
+- T_B_C:
+    cols: 4
+    data: [-0.9999608882084494, -0.0038389465297980195, 0.007967718802071354, 0.018154900593605507,
+      0.003820193267673739, -0.9999899003843442, -0.00236754148975118, 0.010909600251047407,
+      0.007976727196360039, -0.0023370106652355564, 0.9999654545054966, 0.008324747295644476,
+      0.0, 0.0, 0.0, 1.0]
+    rows: 4
+  calib_date: 0
+  camera:
+    distortion:
+      parameters:
+        cols: 1
+        data: [-0.008579595751733953, 0.051311582327734605, -0.05001396956217053,
+          0.010175333314992027]
+        rows: 4
+      type: equidistant
+    image_height: 800
+    image_width: 848
+    intrinsics:
+      cols: 1
+      data: [286.60658790558, 286.62474653841883, 424.7020620829641, 402.1087368769332]
+      rows: 4
+    label: cam0
+    line-delay-nanoseconds: 0
+    type: pinhole
+  description: /camera/fisheye1/image_raw
+  serial_no: 0
+- T_B_C:
+    cols: 4
+    data: [-0.9999374142283776, -0.009112880482142326, 0.006490226158110726, -0.04568208964678875,
+      0.009070889450960422, -0.9999379258078578, -0.006470200587848244, 0.011181726879350807,
+      0.0065487854472176905, -0.0064109235213599515, 0.9999580058526304, 0.008454854480282884,
+      0.0, 0.0, 0.0, 1.0]
+    rows: 4
+  calib_date: 0
+  camera:
+    distortion:
+      parameters:
+        cols: 1
+        data: [-0.005724240755544701, 0.0443239389028816, -0.04293290943519267, 0.007944205478634711]
+        rows: 4
+      type: equidistant
+    image_height: 800
+    image_width: 848
+    intrinsics:
+      cols: 1
+      data: [287.1848250593924, 287.27751544083253, 421.8313760539784, 401.0666725260718]
+      rows: 4
+    label: cam1
+    line-delay-nanoseconds: 0
+    type: pinhole
+  description: /camera/fisheye2/image_raw
+  serial_no: 0
+label: camchain-imucam-realsense-camera-imu_2021-11-01-13-56-58.yaml
+
+imu_params:
+  acc_max: 176.0
+  delay_imu_cam: 0.0
+  g: 9.8082
+  imu_rate: 200.0
+  max_imu_delta_t: 0.01
+  omega_max: 7.8
+  sigma_acc_bias_c: 0.0003261620294847385
+  sigma_acc_c: 0.01813833886831177
+  sigma_integration: 0.0
+  sigma_omega_bias_c: 1.1126422771365167e-05
+  sigma_omega_c: 0.0018835835796778772
+
+imu_initialization:
+  acc_bias: [0.0, 0.0, 0.0]
+  acc_bias_sigma: 0.01813833886831177
+  omega_bias: [0.0, 0.0, 0.0]
+  omega_bias_sigma: 0.0018835835796778772
+  velocity: [0.0, 0.0, 0.0]
+  velocity_sigma: 1.0

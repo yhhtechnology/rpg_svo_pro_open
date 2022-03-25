@@ -183,7 +183,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {
@@ -809,13 +809,7 @@ void FrameHandlerBase::upgradeSeedsToFeatures(const FramePtr& frame) {
     for (size_t i = 0; i < frame->num_features_; ++i) {
         if (frame->landmark_vec_[i]) {
             const FeatureType& type = frame->type_vec_[i];
-            if (type == FeatureType::kCorner || type == FeatureType::kEdgelet ||
-                type == FeatureType::kMapPoint) {
-                frame->landmark_vec_[i]->addObservation(frame, i);
-            } else {
-                CHECK(isFixedLandmark(type));
-                frame->landmark_vec_[i]->addObservation(frame, i);
-            }
+            frame->landmark_vec_[i]->addObservation(frame, i);
         } else if (frame->seed_ref_vec_[i].keyframe) {
             if (isUnconvergedSeed(frame->type_vec_[i])) {
                 unconverged_cnt++;

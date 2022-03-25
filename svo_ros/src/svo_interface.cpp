@@ -451,6 +451,7 @@ void SvoInterface::monoLoop() {
     }
 }
 
+void drop() { printf("drop frame\n"); }
 void SvoInterface::stereoLoop() {
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image,
                                                       sensor_msgs::Image>
@@ -472,6 +473,7 @@ void SvoInterface::stereoLoop() {
     image_transport::SubscriberFilter sub1(it, cam1_topic, 1,
                                            std::string("raw"));
     ExactSync sync_sub(ExactPolicy(5), sub0, sub1);
+    // sync_sub.registerDropCallback(boost::bind(drop));
     sync_sub.registerCallback(
         boost::bind(&svo::SvoInterface::stereoCallback, this, _1, _2));
 

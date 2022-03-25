@@ -160,17 +160,18 @@ Matcher::MatchResult Matcher::findEpipolarMatchDirect(
                             T_cur_ref.getPosition() * d_min_inv;
     const BearingVector B = T_cur_ref.getRotation().rotate(ref_ftr.f) +
                             T_cur_ref.getPosition() * d_max_inv;
+    // 限制搜索的范围： 找到 极限的开始和结束点;
+    // A B : 3D 射线； 对应 2D px_A, px_B
+    // 对应极线： epi_image_
     Eigen::Vector2d px_A, px_B;
     cur_frame.cam()->project3(A, &px_A);
     cur_frame.cam()->project3(B, &px_B);
     epi_image_ = px_A - px_B;
 
-    // Compute affine warp matrix
+    // Compute affine warp matrix 计算公式还不懂啊
     warp::getWarpMatrixAffine(ref_frame.cam_, cur_frame.cam_, ref_ftr.px,
-                              ref_ftr.f,
-                              1.0 / std::max(0.000001, d_estimate_inv),
+                              ref_ftr.f, 1.0 / std::max(0.000001, d_estimate_inv),
                               T_cur_ref, ref_ftr.level, &A_cur_ref_);
-
     // feature pre-selection
     reject_ = false;
     if (isEdgelet(ref_ftr.type) && options_.epi_search_edgelet_filtering) {
@@ -183,22 +184,60 @@ Matcher::MatchResult Matcher::findEpipolarMatchDirect(
         }
     }
 
+    {
+        // 仿射变换(Affine Transformation)
+            // Affine Transformation是一种二维坐标到二维坐标之间的线性变换;
+                // 保持了线共点、点共线的关系不变;
+                // 保持了线的平行性
+                // 保持了中点仍然是中点，线段间的比例关系
+                // 改变了线段的长度
+                // 改变了线段的夹角
+            // 仿射变换可以通过一系列的原子变换的复合来实现, 包括: 平移, 缩放, 翻转， 旋转，剪切
+        // 为什么要计算仿射矩阵？
+            // 我们知道，同一张图像在经过旋转平移后，同一个场景在图像上的成像位置就发生了变换。
+            // 在像素做匹配时，我们需要用像素周围的信息（一般是矩形窗口）来描述本像素的特征。
+            // 设想一下，如果帧间图像发生了旋转，我们还用同样的窗口（当前帧的窗口坐标和种子所在帧窗口坐标一样）来描述搜索点，是不是不太合适，
+            // 所以要将原本是正方形的搜索框经过仿射变换得到待搜索的图像上的搜索框
+            // 举例：
+                // 如上图，描述p的窗口w1在后帧上投影点为p’,我们在匹配p和p’时，是用蓝色窗口来描述p’呢，还是用红色窗口？
+                // 答案肯定是红色窗口，那既然是红窗口，红色窗口怎么计算呢？
+                // 这就会用到仿射矩阵，SVO仿射矩阵是这样的计算的。
+        // 怎么进行仿射变换,如何得到reference patch?
+            // 计算窗口的思路是先利用三点法计算出tk和tn两时刻图像的仿射变换矩阵 A_ref_cur，
+            // 然后再把窗口w1里的像素坐标逐一映射到图像tn里，这样映射的所有坐标就组成了窗口w2。
+            // 举例： 两个时刻的图像 frame_ref 和 frame_cur. 在frame_ref 中像素坐标 px_ref, 目标是找到frame_cur 中和
+                // px_ref 匹配的向所坐标 px_cur
+                // setp1 : 计算两帧之间的仿射变换 A_ref_cur
+                // step2： 以参考帧的 px_ref 为中心画一个 正方形。（相当于搜索范围）
+                // step3:  px_ref的正方形范围在当前帧是个怎样的形状，那就需要经过仿射变换 A_ref_cur 进行投影，得到当前帧中搜索的范围框
+                // step4: 在极线上，遍历极线上的所有点， 以该点为中心，搜索范围为 step3 得到的框，在框内找和px_ref匹配的点。每次都通过
+                    // ZMSSD 打分， 得分最优的为最佳的匹配点
+                // step4 的思路只是目前的理解，待商榷
+    }
     // prepare for match
     //    - find best search level
     //    - warp the reference patch
-    search_level_ =
-        warp::getBestSearchLevel(A_cur_ref_, ref_frame.img_pyr_.size() - 1);
+    // 找到当前帧中最佳的搜索的金字塔层： search_level_
+    search_level_ = warp::getBestSearchLevel(A_cur_ref_, ref_frame.img_pyr_.size() - 1);
     // length and direction on SEARCH LEVEL
+    // epi_length_pyramid_ : 表示当前搜索金字塔层的长度
+    // epi_dir_image : 搜索的方向
     epi_length_pyramid_ = epi_image_.norm() / (1 << search_level_);
     GradientVector epi_dir_image = epi_image_.normalized();
+    // 根据仿射变换， 在参考帧的像素坐标 ref_ftr.px 上建立patch，经过计算得到 patch_with_border_
     if (!warp::warpAffine(A_cur_ref_, ref_frame.img_pyr_[ref_ftr.level],
                           ref_ftr.px, ref_ftr.level, search_level_,
-                          kHalfPatchSize + 1, patch_with_border_))
+                          kHalfPatchSize + 1, patch_with_border_)) {
         return MatchResult::kFailWarp;
-    patch_utils::createPatchFromPatchWithBorder(patch_with_border_, kPatchSize,
-                                                patch_);
+    }
+        // static const int kHalfPatchSize = 4;
+        // static const int kPatchSize = 8;
+    // patch_with_border_ 计算 patch_， patch_ 是最后在当前帧搜索匹配点时候的 patch
+    // createPatchFromPatchWithBorder 这一步的意义是啥 ??? 
+    patch_utils::createPatchFromPatchWithBorder(patch_with_border_, kPatchSize, patch_);
 
     // Case 1: direct search locally if the epipolar line is too short
+    // 如果 在对应层中的 极线长度很小 小于 2, 直接计算
     if (epi_length_pyramid_ < 2.0) {
         px_cur_ = (px_A + px_B) / 2.0;
         MatchResult res =
@@ -214,6 +253,9 @@ Matcher::MatchResult Matcher::findEpipolarMatchDirect(
     PatchScore patch_score(patch_);  // precompute for reference patch
     BearingVector C = T_cur_ref.getRotation().rotate(ref_ftr.f) +
                       T_cur_ref.getPosition() * d_estimate_inv;
+    // 在当前帧对应搜索层的极线上搜索最好的和 参考帧种子 最匹配的像素坐标  px_cur_
+    // 通过 ZMSSD 给匹配打分，最后返回最优分数对应的像素点 px_cur_ 和 最优分数 zmssd_best 。
+    // ZMSSD （） 
     scanEpipolarLine(cur_frame, A, B, C, patch_score, search_level_, &px_cur_,
                      &zmssd_best);
 
@@ -224,13 +266,13 @@ Matcher::MatchResult Matcher::findEpipolarMatchDirect(
                                              search_level_, px_cur_);
             if (res != MatchResult::kSuccess) return res;
         }
-
         cur_frame.cam()->backProject3(px_cur_, &f_cur_);
         f_cur_.normalize();
         return matcher_utils::depthFromTriangulation(T_cur_ref, ref_ftr.f,
                                                      f_cur_, &depth);
-    } else
+    } else {
         return MatchResult::kFailScore;
+    }
 }
 
 std::string Matcher::getResultString(const Matcher::MatchResult& result) {
@@ -293,6 +335,12 @@ Matcher::MatchResult Matcher::findLocalMatch(
     return MatchResult::kSuccess;
 }
 
+
+// 极线搜索匹配, 通过8*8的patch块来描述像素的特征
+// 两个patch块的匹配方式是ZMSSD(Zero Mean Sum of Squared Differences)
+// 类似于SSD(sum of squared difference)，用于块儿匹配相似性打分.
+
+// 通过RANSAC计算ZMSSD获取最佳匹配点坐标
 bool Matcher::updateZMSSD(const Frame& frame,
                           const Eigen::Vector2i& pxi,
                           const int patch_level,
@@ -305,7 +353,6 @@ bool Matcher::updateZMSSD(const Frame& frame,
         (pxi[0] - kHalfPatchSize);
     int zmssd = patch_score.computeScore(cur_patch_ptr,
                                          frame.img_pyr_[patch_level].step);
-
     if (zmssd < *zmssd_best) {
         *zmssd_best = zmssd;
         return true;
@@ -334,12 +381,14 @@ void Matcher::scanEpipolarLine(const Frame& frame,
                                const int patch_level,
                                Keypoint* image_best,
                                int* zmssd_best) {
+    // 鱼眼相机在单位球面上搜索
     if (options_.scan_on_unit_sphere)
         scanEpipolarUnitSphere(frame, A, B, C, patch_score, patch_level,
                                image_best, zmssd_best);
     else
         scanEpipolarUnitPlane(frame, A, B, C, patch_score, patch_level,
                               image_best, zmssd_best);
+    // 其它相机在平面上搜索
 }
 
 void Matcher::scanEpipolarUnitPlane(const Frame& frame,
@@ -394,9 +443,10 @@ void Matcher::scanEpipolarUnitPlane(const Frame& frame,
             } else
                 break;
         }
-
-        if (updateZMSSD(frame, pxi, patch_level, patch_score, zmssd_best))
+        // 选最好的匹配点的核心约束： ZMSSD
+        if (updateZMSSD(frame, pxi, patch_level, patch_score, zmssd_best)) {
             uv_best = uv;
+        }
 
         if (forward && i > n_steps * 0.5) {
             // reverse search direction
