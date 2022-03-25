@@ -62,9 +62,8 @@ inline void conservativeResize(Eigen::MatrixXd& matrixXd, int rows, int cols) {
 
 inline void conservativeResize(Eigen::VectorXd& vectorXd, int size) {
     if (vectorXd.rows() == 1) {
-        Eigen::VectorXd tmp(
-            size);  // Eigen::VectorXd tmp =
-                    // Eigen::VectorXd::Zero(size,Eigen::RowMajor);
+        Eigen::VectorXd tmp(size);  // Eigen::VectorXd tmp =
+        // Eigen::VectorXd::Zero(size,Eigen::RowMajor);
         const int common_size = std::min((int)vectorXd.cols(), size);
         tmp.head(common_size) = vectorXd.head(common_size);
         vectorXd.swap(tmp);

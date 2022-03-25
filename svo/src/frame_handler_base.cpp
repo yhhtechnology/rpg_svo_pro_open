@@ -183,7 +183,7 @@ bool FrameHandlerBase::addImageBundle(const std::vector<cv::Mat>& imgs,
         }
     } else {
         // at first iteration initialize tracing if enabled
-        if (options_.trace_statistics)
+        if (options_.trace_statistics && bundle_adjustment_)
             bundle_adjustment_->setPerformanceMonitor(options_.trace_dir);
     }
     if (options_.trace_statistics) {
@@ -309,6 +309,8 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
     if (have_motion_prior_) {
         have_rotation_prior_ = true;
         R_imu_world_ = new_frames_->get_T_W_B().inverse().getRotation();
+        q_world_imu_ = new_frames_->get_T_W_B().getRotation();
+        q_world_imu_.normalize();
         if (last_frames_) {
             T_newimu_lastimu_prior_ =
                 new_frames_->get_T_W_B().inverse() * last_frames_->get_T_W_B();
@@ -350,6 +352,26 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
 
     // Perform tracking.
     update_res_ = processFrameBundle();
+
+    // After refine the pose of new_frames  in processFrameBundle();
+    // we should update it to CERES
+    if (bundle_adjustment_ && have_motion_prior_) {
+        Transformation T_WS;
+        q_world_imu_ = new_frames_->get_T_W_B().getRotation();
+        q_world_imu_.normalize();
+        // if the frontend estimate is bad,
+        if (is_sparse_aligment_good_) {
+            T_WS = Transformation(q_world_imu_,
+                                  new_frames_->get_T_W_B().getPosition());
+        } else {
+            if (last_frames_) {
+                Transformation T_WS2 = last_frames_->get_T_W_B() * T_b0b1_;
+                T_WS = Transformation(q_world_imu_, T_WS2.getPosition());
+                printf("sparse aligment isnot good, use VelocityMode! \n");
+            }
+        }
+        bundle_adjustment_->set_T_WSInBackend(new_frames_->getBundleId(), T_WS);
+    }
 
     // We start the backend first, since it is the most time crirical
     if (bundle_adjustment_) {
@@ -438,6 +460,9 @@ bool FrameHandlerBase::addFrameBundle(const FrameBundlePtr& frame_bundle) {
         t_lastimu_newimu_ =
             new_frames_->at(0)->T_imu_world().getRotation().rotate(
                 new_frames_->at(0)->imuPos() - last_frames_->at(0)->imuPos());
+        // TODO(yehonghua)
+        T_b0b1_ =
+            last_frames_->get_T_W_B().inverse() * new_frames_->get_T_W_B();
     }
 
     // Statistics.
@@ -607,6 +632,25 @@ size_t FrameHandlerBase::sparseImageAlignment() {
         options_.img_align_max_num_features);
     size_t img_align_n_tracked =
         sparse_img_align_->run(last_frames_, new_frames_);
+    // TODO(yehonghua) : remove hardcode such as 20.
+    Transformation T_WS;
+    if (img_align_n_tracked < 20) {
+        is_sparse_aligment_good_ = false;
+        if (bundle_adjustment_) {
+            if (last_frames_) {
+                // VelocityMode
+                Transformation T_WS2 = last_frames_->get_T_W_B() * T_b0b1_;
+                T_WS = Transformation(q_world_imu_, T_WS2.getPosition());
+            } else {
+                T_WS = Transformation(q_world_imu_, Eigen::Vector3d(0, 0, 0));
+            }
+        } else {
+            T_WS = last_frames_->get_T_W_B() * T_b0b1_;
+        }
+        new_frames_->set_T_W_B(T_WS);
+    } else {
+        is_sparse_aligment_good_ = true;
+    }
 
     if (options_.trace_statistics) {
         SVO_STOP_TIMER("sparse_img_align");

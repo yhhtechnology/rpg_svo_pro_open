@@ -72,6 +72,9 @@ class AbstractBundleAdjustment {
 
     virtual void setCorrectionInWorld(const Transformation& w_T_correction) = 0;
 
+    virtual void set_T_WSInBackend(const BundleId& bundle_id,
+                                   const Transformation& T_WS) = 0;
+
     virtual void getAllActiveKeyframes(std::vector<FramePtr>* keyframes) = 0;
 
     virtual bool isFixedToGlobalMap() const = 0;

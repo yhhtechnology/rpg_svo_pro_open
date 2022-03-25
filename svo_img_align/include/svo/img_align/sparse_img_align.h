@@ -61,11 +61,11 @@ class SparseImgAlign : public SparseImgAlignBase {
     XyzRefCache xyz_ref_cache_;  //!< contains 3d feature location in IMU frame
                                  //!(size 3 x #Patches)
     JacobianProjCache jacobian_proj_cache_;  //!< containts 2x6 Jacobians (d
-                                             //!proj(X))/(d xi) (size 2 x 6 x
-                                             //!#Patches)
-    JacobianCache jacobian_cache_;    //<! contains 1x8 jacobians (pose and
-                                      //illumination model) (size 8 x
-                                      //AreaPatch*#Patches)
+                                             //! proj(X))/(d xi) (size 2 x 6 x
+    //!#Patches)
+    JacobianCache jacobian_cache_;  //<! contains 1x8 jacobians (pose and
+                                    // illumination model) (size 8 x
+    // AreaPatch*#Patches)
     ResidualCache residual_cache_;    //<! residuals (size AreaPatch x #Patches)
     VisibilityMask visibility_mask_;  //<! is Patch visible in current image?
                                       //(size 1 x #Patches)

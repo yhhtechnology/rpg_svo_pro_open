@@ -516,6 +516,10 @@ class Estimator {
      */
     bool set_T_WS(BackendId pose_id, const Transformation& T_WS);
 
+    bool set_T_WS(const int32_t& bundle_id, const Transformation& T_WS) {
+        return set_T_WS(createNFrameId(bundle_id), T_WS);
+    }
+
     /**
      * @brief Set pose for a given pose ID.
      * @param[in] landmark_id ID of the landmark that should be changed.
