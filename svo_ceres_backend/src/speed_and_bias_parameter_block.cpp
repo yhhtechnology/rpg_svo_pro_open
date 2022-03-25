@@ -5,7 +5,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -45,18 +45,16 @@ namespace ceres_backend {
 
 // Default constructor (assumes not fixed).
 SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock()
-    : ParameterBlock::ParameterBlock()
-{
-  setFixed(false);
+    : ParameterBlock::ParameterBlock() {
+    setFixed(false);
 }
 
 // Constructor with estimate.
 SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock(
-    const SpeedAndBias& speed_and_bias, uint64_t id)
-{
-  setEstimate(speed_and_bias);
-  setId(id);
-  setFixed(false);
+    const SpeedAndBias& speed_and_bias, uint64_t id) {
+    setEstimate(speed_and_bias);
+    setId(id);
+    setFixed(false);
 }
 
 }  // namespace ceres_backend

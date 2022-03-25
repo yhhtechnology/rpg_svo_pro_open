@@ -5,7 +5,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -42,7 +42,8 @@
 
 #pragma diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-// Eigen 3.2.7 uses std::binder1st and std::binder2nd which are deprecated since c++11
+// Eigen 3.2.7 uses std::binder1st and std::binder2nd which are deprecated since
+// c++11
 // Fix is in 3.3 devel (http://eigen.tuxfamily.org/bz/show_bug.cgi?id=872).
 #include <ceres/ceres.h>
 #pragma diagnostic pop
@@ -56,134 +57,130 @@ namespace svo {
 namespace ceres_backend {
 
 /// \brief Absolute error of a pose.
-class PoseError :
-    public ceres::SizedCostFunction<6 /* number of residuals */,
-                                    7 /* size of first parameter */>,
-    public ErrorInterface
-{
+class PoseError
+    : public ceres::SizedCostFunction<6 /* number of residuals */,
+                                      7 /* size of first parameter */>,
+      public ErrorInterface {
  public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  /// \brief The base class type.
-  typedef ceres::SizedCostFunction<6, 7> base_t;
+    /// \brief The base class type.
+    typedef ceres::SizedCostFunction<6, 7> base_t;
 
-  /// \brief The number of residuals (6).
-  static const int kNumResiduals = 6;
+    /// \brief The number of residuals (6).
+    static const int kNumResiduals = 6;
 
-  /// \brief The information matrix type (6x6).
-  typedef Eigen::Matrix<double, 6, 6> information_t;
+    /// \brief The information matrix type (6x6).
+    typedef Eigen::Matrix<double, 6, 6> information_t;
 
-  /// \brief The covariance matrix type (same as information).
-  typedef Eigen::Matrix<double, 6, 6> covariance_t;
+    /// \brief The covariance matrix type (same as information).
+    typedef Eigen::Matrix<double, 6, 6> covariance_t;
 
-  /// \brief Default constructor.
-  PoseError() = default;
+    /// \brief Default constructor.
+    PoseError() = default;
 
-  /// \brief Construct with measurement and information matrix.
-  /// @param[in] measurement The measurement.
-  /// @param[in] information The information (weight) matrix.
-  PoseError(const Transformation& measurement,
-            const Eigen::Matrix<double, 6, 6>& information);
+    /// \brief Construct with measurement and information matrix.
+    /// @param[in] measurement The measurement.
+    /// @param[in] information The information (weight) matrix.
+    PoseError(const Transformation& measurement,
+              const Eigen::Matrix<double, 6, 6>& information);
 
-  /// \brief Construct with measurement and variance.
-  /// @param[in] measurement The measurement.
-  /// @param[in] translationVariance The translation variance.
-  /// @param[in] rotationVariance The rotation variance.
-  PoseError(const Transformation& measurement,
-            double translation_variance, double rotation_variance);
+    /// \brief Construct with measurement and variance.
+    /// @param[in] measurement The measurement.
+    /// @param[in] translationVariance The translation variance.
+    /// @param[in] rotationVariance The rotation variance.
+    PoseError(const Transformation& measurement,
+              double translation_variance,
+              double rotation_variance);
 
-  /// \brief Trivial destructor.
-  virtual ~PoseError() = default;
+    /// \brief Trivial destructor.
+    virtual ~PoseError() = default;
 
-  /// \name Setters
-  /// \{
+    /// \name Setters
+    /// \{
 
-  /// \brief Set the measurement.
-  /// @param[in] measurement The measurement.
-  void setMeasurement(const Transformation& measurement)
-  {
-    measurement_ = measurement;
-  }
+    /// \brief Set the measurement.
+    /// @param[in] measurement The measurement.
+    void setMeasurement(const Transformation& measurement) {
+        measurement_ = measurement;
+    }
 
-  /// \brief Set the information.
-  /// @param[in] information The information (weight) matrix.
-  void setInformation(const information_t& information);
+    /// \brief Set the information.
+    /// @param[in] information The information (weight) matrix.
+    void setInformation(const information_t& information);
 
-  /// \}
-  /// \name Getters
-  /// \{
+    /// \}
+    /// \name Getters
+    /// \{
 
-  /// \brief Get the measurement.
-  /// \return The measurement vector.
-  const Transformation& measurement() const { return measurement_; }
+    /// \brief Get the measurement.
+    /// \return The measurement vector.
+    const Transformation& measurement() const { return measurement_; }
 
-  /// \brief Get the information matrix.
-  /// \return The information (weight) matrix.
-  const information_t& information() const { return information_; }
+    /// \brief Get the information matrix.
+    /// \return The information (weight) matrix.
+    const information_t& information() const { return information_; }
 
-  /// \brief Get the covariance matrix.
-  /// \return The inverse information (covariance) matrix.
-  const information_t& covariance() const { return covariance_; }
+    /// \brief Get the covariance matrix.
+    /// \return The inverse information (covariance) matrix.
+    const information_t& covariance() const { return covariance_; }
 
-  /// \}
+    /// \}
 
-  // error term and Jacobian implementation
-  /**
-    * @brief This evaluates the error term and additionally computes the Jacobians.
-    * @param parameters Pointer to the parameters (see ceres)
-    * @param residuals Pointer to the residual vector (see ceres)
-    * @param jacobians Pointer to the Jacobians (see ceres)
-    * @return success of th evaluation.
-    */
-  virtual bool Evaluate(double const* const * parameters, double* residuals,
-                        double** jacobians) const;
+    // error term and Jacobian implementation
+    /**
+      * @brief This evaluates the error term and additionally computes the
+     * Jacobians.
+      * @param parameters Pointer to the parameters (see ceres)
+      * @param residuals Pointer to the residual vector (see ceres)
+      * @param jacobians Pointer to the Jacobians (see ceres)
+      * @return success of th evaluation.
+      */
+    virtual bool Evaluate(double const* const* parameters,
+                          double* residuals,
+                          double** jacobians) const;
 
-  /**
-   * @brief This evaluates the error term and additionally computes
-   *        the Jacobians in the minimal internal representation.
-   * @param parameters Pointer to the parameters (see ceres)
-   * @param residuals Pointer to the residual vector (see ceres)
-   * @param jacobians Pointer to the Jacobians (see ceres)
-   * @param jacobians_minimal Pointer to the minimal Jacobians (equivalent to jacobians).
-   * @return Success of the evaluation.
-   */
-  virtual bool EvaluateWithMinimalJacobians(double const* const * parameters,
-                                            double* residuals,
-                                            double** jacobians,
-                                            double** jacobians_minimal) const;
+    /**
+     * @brief This evaluates the error term and additionally computes
+     *        the Jacobians in the minimal internal representation.
+     * @param parameters Pointer to the parameters (see ceres)
+     * @param residuals Pointer to the residual vector (see ceres)
+     * @param jacobians Pointer to the Jacobians (see ceres)
+     * @param jacobians_minimal Pointer to the minimal Jacobians (equivalent to
+     * jacobians).
+     * @return Success of the evaluation.
+     */
+    virtual bool EvaluateWithMinimalJacobians(double const* const* parameters,
+                                              double* residuals,
+                                              double** jacobians,
+                                              double** jacobians_minimal) const;
 
-  // sizes
-  /// \brief Residual dimension.
-  size_t residualDim() const { return kNumResiduals; }
+    // sizes
+    /// \brief Residual dimension.
+    size_t residualDim() const { return kNumResiduals; }
 
-  /// \brief Number of parameter blocks.
-  size_t parameterBlocks() const
-  {
-    return base_t::parameter_block_sizes().size();
-  }
+    /// \brief Number of parameter blocks.
+    size_t parameterBlocks() const {
+        return base_t::parameter_block_sizes().size();
+    }
 
-  /// \brief Dimension of an individual parameter block.
-  size_t parameterBlockDim(size_t parameter_block_idx) const
-  {
-    return base_t::parameter_block_sizes().at(parameter_block_idx);
-  }
+    /// \brief Dimension of an individual parameter block.
+    size_t parameterBlockDim(size_t parameter_block_idx) const {
+        return base_t::parameter_block_sizes().at(parameter_block_idx);
+    }
 
-  /// @brief Return parameter block type as string
-  virtual ErrorType typeInfo() const
-  {
-    return ErrorType::kPoseError;
-  }
+    /// @brief Return parameter block type as string
+    virtual ErrorType typeInfo() const { return ErrorType::kPoseError; }
 
  protected:
+    // the measurement
+    Transformation measurement_;  ///< The pose measurement.
 
-  // the measurement
-  Transformation measurement_; ///< The pose measurement.
-
-  // weighting related
-  information_t information_; ///< The 6x6 information matrix.
-  information_t square_root_information_; ///< The 6x6 square root information matrix.
-  covariance_t covariance_; ///< The 6x6 covariance matrix.
-
+    // weighting related
+    information_t information_;  ///< The 6x6 information matrix.
+    information_t
+        square_root_information_;  ///< The 6x6 square root information matrix.
+    covariance_t covariance_;      ///< The 6x6 covariance matrix.
 };
 
 }  // namespace ceres_backend

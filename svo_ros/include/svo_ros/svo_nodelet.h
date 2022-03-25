@@ -8,16 +8,15 @@ namespace svo {
 // forward declarations
 class SvoInterface;
 
-class SvoNodelet : public nodelet::Nodelet
-{
-public:
-  SvoNodelet() = default;
-  virtual ~SvoNodelet();
+class SvoNodelet : public nodelet::Nodelet {
+ public:
+    SvoNodelet() = default;
+    virtual ~SvoNodelet();
 
  private:
-  virtual void onInit();
+    virtual void onInit();
 
-  std::unique_ptr<SvoInterface> svo_interface_;
+    std::unique_ptr<SvoInterface> svo_interface_;
 };
 
-} // namespace svo
+}  // namespace svo

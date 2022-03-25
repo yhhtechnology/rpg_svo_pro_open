@@ -36,4 +36,4 @@ typedef unsigned char BoolTypeGpu;
 typedef imp::Pixel8uC1 BoolPixelGpu;
 #endif
 
-} // namespace svo
+}  // namespace svo

@@ -1,6 +1,5 @@
 #include "svo/null_stream.h"
 
-namespace svo
-{
+namespace svo {
 NullStream kNullOutput;
 }

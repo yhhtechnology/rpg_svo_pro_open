@@ -17,55 +17,51 @@ namespace svo {
 class Frame;
 
 /// Depth estimation by minimizing photometric error.
-class DepthEstimator : public vk::solver::MiniLeastSquaresSolver<1, double, DepthEstimator>
-{
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  using SolverOptions = vk::solver::MiniLeastSquaresSolverOptions;
-  using DepthEstimatorState = double;
+class DepthEstimator
+    : public vk::solver::MiniLeastSquaresSolver<1, double, DepthEstimator> {
+ public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    using SolverOptions = vk::solver::MiniLeastSquaresSolverOptions;
+    using DepthEstimatorState = double;
 
-  static constexpr int kPatchHalfsize = 4;
-  static constexpr int kPatchSize = 2*kPatchHalfsize;
-  static constexpr int kPatchArea = kPatchSize*kPatchSize;
-  static constexpr int kMaxLevel = 4;
-  static constexpr int kMinLevel = 0;
+    static constexpr int kPatchHalfsize = 4;
+    static constexpr int kPatchSize = 2 * kPatchHalfsize;
+    static constexpr int kPatchArea = kPatchSize * kPatchSize;
+    static constexpr int kMaxLevel = 4;
+    static constexpr int kMinLevel = 0;
 
-  DepthEstimator(const SolverOptions& solver_options);
-  ~DepthEstimator() = default;
+    DepthEstimator(const SolverOptions& solver_options);
+    ~DepthEstimator() = default;
 
-  static SolverOptions getDefaultSolverOptions();
+    static SolverOptions getDefaultSolverOptions();
 
-  void run(
-      const FramePtr& cur_frame,
-      const FramePtr& ref_frame,
-      const int ref_feature_id);
+    void run(const FramePtr& cur_frame,
+             const FramePtr& ref_frame,
+             const int ref_feature_id);
 
-  double evaluateError(
-      const State& params,
-      HessianMatrix* H,
-      GradientVector* g);
+    double evaluateError(const State& params,
+                         HessianMatrix* H,
+                         GradientVector* g);
 
-  void update(
-      const State& param_old,
-      const UpdateVector& dx,
-      State& param_new);
+    void update(const State& param_old,
+                const UpdateVector& dx,
+                State& param_new);
 
-  bool solve(
-      const HessianMatrix& H,
-      const GradientVector& g,
-      UpdateVector& dx);
+    bool solve(const HessianMatrix& H,
+               const GradientVector& g,
+               UpdateVector& dx);
 
-  FramePtr cur_frame_;
-  FramePtr ref_frame_;
-  BearingVector f_ref_;
-  Keypoint px_ref_;
-  Transformation T_cur_ref_;
+    FramePtr cur_frame_;
+    FramePtr ref_frame_;
+    BearingVector f_ref_;
+    Keypoint px_ref_;
+    Transformation T_cur_ref_;
 
-  uint8_t ref_patch_[kPatchSize*kPatchSize] __attribute__ ((aligned (16)));
-  uint8_t ref_patch_with_border_[(kPatchSize+2)*(kPatchSize+2)] __attribute__ ((aligned (16)));
+    uint8_t ref_patch_[kPatchSize * kPatchSize] __attribute__((aligned(16)));
+    uint8_t ref_patch_with_border_[(kPatchSize + 2) * (kPatchSize + 2)]
+        __attribute__((aligned(16)));
 
-  int level_ = 0;
-
+    int level_ = 0;
 };
 
-} // namespace svo
+}  // namespace svo

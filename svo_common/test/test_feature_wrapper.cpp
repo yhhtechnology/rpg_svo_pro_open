@@ -8,26 +8,24 @@
 #include <eigen-checks/gtest.h>
 #include <svo/common/feature_wrapper.h>
 
-template<class T>
+template <class T>
 typename std::enable_if<std::is_integral<T>::value, std::function<T()> >::type
-getRandomGenerator()
-{
-  std::default_random_engine generator;
-  std::uniform_int_distribution<T> distribution(std::numeric_limits<T>::lowest(),
-                                                std::numeric_limits<T>::max());
-  auto random_val = std::bind(distribution, generator);
-  return random_val;
+getRandomGenerator() {
+    std::default_random_engine generator;
+    std::uniform_int_distribution<T> distribution(
+        std::numeric_limits<T>::lowest(), std::numeric_limits<T>::max());
+    auto random_val = std::bind(distribution, generator);
+    return random_val;
 }
 
-template<class T>
+template <class T>
 typename std::enable_if<!std::is_integral<T>::value, std::function<T()> >::type
-getRandomGenerator()
-{
-  std::default_random_engine generator;
-  std::uniform_real_distribution<T> distribution(std::numeric_limits<T>::lowest(),
-                                                 std::numeric_limits<T>::max());
-  auto random_val = std::bind(distribution, generator);
-  return random_val;
+getRandomGenerator() {
+    std::default_random_engine generator;
+    std::uniform_real_distribution<T> distribution(
+        std::numeric_limits<T>::lowest(), std::numeric_limits<T>::max());
+    auto random_val = std::bind(distribution, generator);
+    return random_val;
 }
 
 /* TODO(mwe) Adapt to changes in FeatureWrapper.

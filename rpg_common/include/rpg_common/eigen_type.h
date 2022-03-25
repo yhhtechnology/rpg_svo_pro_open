@@ -10,25 +10,24 @@
 
 #include <Eigen/Core>
 
-namespace rpg_common
-{
-#define ZE_MAKE_EIGEN_MATRIX_TYPEDEFS(SIZE, SUFFIX)                            \
-  using Matrix##SUFFIX = Eigen::Matrix<double, SIZE, SIZE>;                    \
-  using Matrix1##SUFFIX = Eigen::Matrix<double, 1, SIZE>;                      \
-  using Matrix2##SUFFIX = Eigen::Matrix<double, 2, SIZE>;                      \
-  using Matrix3##SUFFIX = Eigen::Matrix<double, 3, SIZE>;                      \
-  using Matrix4##SUFFIX = Eigen::Matrix<double, 4, SIZE>;                      \
-  using Matrix5##SUFFIX = Eigen::Matrix<double, 5, SIZE>;                      \
-  using Matrix6##SUFFIX = Eigen::Matrix<double, 6, SIZE>;                      \
-  using Matrix7##SUFFIX = Eigen::Matrix<double, 7, SIZE>;                      \
-  using Matrix8##SUFFIX = Eigen::Matrix<double, 8, SIZE>;                      \
-  using Matrix9##SUFFIX = Eigen::Matrix<double, 9, SIZE>;                      \
-  using Matrix##SUFFIX##X = Eigen::Matrix<double, SIZE, Eigen::Dynamic>;       \
-  using MatrixX##SUFFIX = Eigen::Matrix<double, Eigen::Dynamic, SIZE>;         \
-  static const Eigen::MatrixBase<Matrix##SUFFIX>::IdentityReturnType           \
-      I_##SUFFIX##x##SUFFIX = Matrix##SUFFIX::Identity();                      \
-  static const Eigen::MatrixBase<Matrix##SUFFIX>::ConstantReturnType           \
-      Z_##SUFFIX##x##SUFFIX = Matrix##SUFFIX::Zero()
+namespace rpg_common {
+#define ZE_MAKE_EIGEN_MATRIX_TYPEDEFS(SIZE, SUFFIX)                        \
+    using Matrix##SUFFIX = Eigen::Matrix<double, SIZE, SIZE>;              \
+    using Matrix1##SUFFIX = Eigen::Matrix<double, 1, SIZE>;                \
+    using Matrix2##SUFFIX = Eigen::Matrix<double, 2, SIZE>;                \
+    using Matrix3##SUFFIX = Eigen::Matrix<double, 3, SIZE>;                \
+    using Matrix4##SUFFIX = Eigen::Matrix<double, 4, SIZE>;                \
+    using Matrix5##SUFFIX = Eigen::Matrix<double, 5, SIZE>;                \
+    using Matrix6##SUFFIX = Eigen::Matrix<double, 6, SIZE>;                \
+    using Matrix7##SUFFIX = Eigen::Matrix<double, 7, SIZE>;                \
+    using Matrix8##SUFFIX = Eigen::Matrix<double, 8, SIZE>;                \
+    using Matrix9##SUFFIX = Eigen::Matrix<double, 9, SIZE>;                \
+    using Matrix##SUFFIX##X = Eigen::Matrix<double, SIZE, Eigen::Dynamic>; \
+    using MatrixX##SUFFIX = Eigen::Matrix<double, Eigen::Dynamic, SIZE>;   \
+    static const Eigen::MatrixBase<Matrix##SUFFIX>::IdentityReturnType     \
+        I_##SUFFIX##x##SUFFIX = Matrix##SUFFIX::Identity();                \
+    static const Eigen::MatrixBase<Matrix##SUFFIX>::ConstantReturnType     \
+        Z_##SUFFIX##x##SUFFIX = Matrix##SUFFIX::Zero()
 
 ZE_MAKE_EIGEN_MATRIX_TYPEDEFS(1, 1);
 ZE_MAKE_EIGEN_MATRIX_TYPEDEFS(2, 2);

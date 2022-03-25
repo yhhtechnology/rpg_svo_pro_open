@@ -5,7 +5,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -47,47 +47,44 @@ namespace svo {
 namespace ceres_backend {
 
 /// \brief Reprojection error base class.
-class ReprojectionErrorBase :
-    public ceres::SizedCostFunction<
-    2 /* number of residuals */,
-    7 /* size of first parameter */,
-    4 /* size of second parameter */,
-    7 /* size of third parameter (camera extrinsics) */>,
-    public ErrorInterface
-{
+class ReprojectionErrorBase
+    : public ceres::SizedCostFunction<
+          2 /* number of residuals */,
+          7 /* size of first parameter */,
+          4 /* size of second parameter */,
+          7 /* size of third parameter (camera extrinsics) */>,
+      public ErrorInterface {
  public:
-  /// \brief Measurement type (2D).
-  typedef Eigen::Vector2d measurement_t;
+    /// \brief Measurement type (2D).
+    typedef Eigen::Vector2d measurement_t;
 
-  /// \brief Covariance / information matrix type (2x2).
-  typedef Eigen::Matrix2d covariance_t;
+    /// \brief Covariance / information matrix type (2x2).
+    typedef Eigen::Matrix2d covariance_t;
 
-  virtual ~ReprojectionErrorBase() = default;
+    virtual ~ReprojectionErrorBase() = default;
 
-  /// \brief Set the measurement.
-  /// @param[in] measurement The measurement vector (2d).
-  virtual void setMeasurement(const measurement_t& measurement) = 0;
+    /// \brief Set the measurement.
+    /// @param[in] measurement The measurement vector (2d).
+    virtual void setMeasurement(const measurement_t& measurement) = 0;
 
-  /// \brief Set the information.
-  /// @param[in] information The information (weight) matrix (2x2).
-  virtual void setInformation(const covariance_t& information) = 0;
+    /// \brief Set the information.
+    /// @param[in] information The information (weight) matrix (2x2).
+    virtual void setInformation(const covariance_t& information) = 0;
 
-  // getters
-  /// \brief Get the measurement.
-  /// \return The measurement vector (2d).
-  virtual const measurement_t& measurement() const = 0;
+    // getters
+    /// \brief Get the measurement.
+    /// \return The measurement vector (2d).
+    virtual const measurement_t& measurement() const = 0;
 
-  /// \brief Get the information matrix.
-  /// \return The information (weight) matrix (2x2).
-  virtual const covariance_t& information() const = 0;
+    /// \brief Get the information matrix.
+    /// \return The information (weight) matrix (2x2).
+    virtual const covariance_t& information() const = 0;
 
-  /// \brief Get the covariance matrix.
-  /// \return The inverse information (covariance) matrix.
-  virtual const covariance_t& covariance() const = 0;
-
+    /// \brief Get the covariance matrix.
+    /// \return The inverse information (covariance) matrix.
+    virtual const covariance_t& covariance() const = 0;
 };
 
-} // namespace ceres_backend
+}  // namespace ceres_backend
 
-} // namespace svo
-
+}  // namespace svo

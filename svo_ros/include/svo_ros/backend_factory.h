@@ -12,5 +12,5 @@ namespace backend_factory {
 
 std::shared_ptr<BackendInterface> makeBackend(const ros::NodeHandle& pnh);
 
-} // namespace vin_factory
-} // namespace svo
+}  // namespace vin_factory
+}  // namespace svo

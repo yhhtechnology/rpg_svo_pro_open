@@ -5,7 +5,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -42,7 +42,8 @@
 
 #pragma diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-// Eigen 3.2.7 uses std::binder1st and std::binder2nd which are deprecated since c++11
+// Eigen 3.2.7 uses std::binder1st and std::binder2nd which are deprecated since
+// c++11
 #include <Eigen/Core>
 #pragma diagnostic pop
 
@@ -53,119 +54,120 @@ namespace svo {
 namespace ceres_backend {
 
 /// \brief Wraps the parameter block for a speed / IMU biases estimate
-class HomogeneousPointParameterBlock : public ParameterBlock
-{
+class HomogeneousPointParameterBlock : public ParameterBlock {
  public:
+    /// \brief The estimate type (4D vector).
+    typedef Eigen::Vector4d estimate_t;
 
-  /// \brief The estimate type (4D vector).
-  typedef Eigen::Vector4d estimate_t;
+    static constexpr size_t c_dimension = 4;
+    static constexpr size_t c_minimal_dimension = 3;
 
-  static constexpr size_t c_dimension = 4;
-  static constexpr size_t c_minimal_dimension = 3;
+    /// \brief Default constructor (assumes not fixed).
+    HomogeneousPointParameterBlock();
 
-  /// \brief Default constructor (assumes not fixed).
-  HomogeneousPointParameterBlock();
+    /// \brief Constructor with estimate and time.
+    /// @param[in] point The homogeneous point estimate.
+    /// @param[in] id The (unique) ID of this block.
+    /// @param[in] initialized Whether or not the 3d position is considered
+    /// initialised.
+    HomogeneousPointParameterBlock(const Eigen::Vector4d& point,
+                                   uint64_t id,
+                                   bool initialized = true);
 
-  /// \brief Constructor with estimate and time.
-  /// @param[in] point The homogeneous point estimate.
-  /// @param[in] id The (unique) ID of this block.
-  /// @param[in] initialized Whether or not the 3d position is considered initialised.
-  HomogeneousPointParameterBlock(const Eigen::Vector4d& point, uint64_t id,
-                                 bool initialized = true);
+    /// \brief Constructor with estimate and time.
+    /// @param[in] point The homogeneous point estimate.
+    /// @param[in] id The (unique) ID of this block.
+    /// @param[in] initialized Whether or not the 3d position is considered
+    /// initialised.
+    HomogeneousPointParameterBlock(const Eigen::Vector3d& point,
+                                   uint64_t id,
+                                   bool initialized = true);
 
-  /// \brief Constructor with estimate and time.
-  /// @param[in] point The homogeneous point estimate.
-  /// @param[in] id The (unique) ID of this block.
-  /// @param[in] initialized Whether or not the 3d position is considered initialised.
-  HomogeneousPointParameterBlock(const Eigen::Vector3d& point, uint64_t id,
-                                 bool initialized = true);
+    virtual ~HomogeneousPointParameterBlock() {}
 
-  virtual ~HomogeneousPointParameterBlock() {}
+    // ---------------------------------------------------------------------------
+    // Setters.
 
+    virtual void setEstimate(const Eigen::Vector4d& point) {
+        estimate_ = point;
+    }
 
-  // ---------------------------------------------------------------------------
-  // Setters.
+    /// \brief Set initialisaiton status.
+    /// @param[in] initialized Whether or not the 3d position is considered
+    /// initialised.
+    void setInitialized(bool initialized) { initialized_ = initialized; }
 
-  virtual void setEstimate(const Eigen::Vector4d& point) { estimate_ = point; }
+    // ---------------------------------------------------------------------------
+    // Getters
 
-  /// \brief Set initialisaiton status.
-  /// @param[in] initialized Whether or not the 3d position is considered initialised.
-  void setInitialized(bool initialized)
-  {
-    initialized_ = initialized;
-  }
+    virtual const Eigen::Vector4d& estimate() const { return estimate_; }
 
-  // ---------------------------------------------------------------------------
-  // Getters
+    /// \brief Get initialisaiton status.
+    /// \return Whether or not the 3d position is considered initialised.
+    bool initialized() const { return initialized_; }
 
-  virtual const Eigen::Vector4d& estimate() const { return estimate_; }
+    virtual double* parameters() { return estimate_.data(); }
 
-  /// \brief Get initialisaiton status.
-  /// \return Whether or not the 3d position is considered initialised.
-  bool initialized() const { return initialized_; }
+    virtual const double* parameters() const { return estimate_.data(); }
 
-  virtual double* parameters() { return estimate_.data(); }
+    virtual size_t dimension() const { return c_dimension; }
 
-  virtual const double* parameters() const { return estimate_.data(); }
+    virtual size_t minimalDimension() const { return c_minimal_dimension; }
 
-  virtual size_t dimension() const { return c_dimension; }
+    // minimal internal parameterization
+    // x0_plus_Delta=Delta_Chi[+]x0
+    /// \brief Generalization of the addition operation,
+    ///        x_plus_delta = Plus(x, delta)
+    ///        with the condition that Plus(x, 0) = x.
+    /// @param[in] x0 Variable.
+    /// @param[in] Delta_Chi Perturbation.
+    /// @param[out] x0_plus_Delta Perturbed x.
+    virtual void plus(const double* x0,
+                      const double* Delta_Chi,
+                      double* x0_plus_Delta) const {
+        HomogeneousPointLocalParameterization::plus(x0, Delta_Chi,
+                                                    x0_plus_Delta);
+    }
 
-  virtual size_t minimalDimension() const { return c_minimal_dimension; }
+    /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
+    /// @param[in] x0 Variable.
+    /// @param[out] jacobian The Jacobian.
+    virtual void plusJacobian(const double* x0, double* jacobian) const {
+        HomogeneousPointLocalParameterization::plusJacobian(x0, jacobian);
+    }
 
-  // minimal internal parameterization
-  // x0_plus_Delta=Delta_Chi[+]x0
-  /// \brief Generalization of the addition operation,
-  ///        x_plus_delta = Plus(x, delta)
-  ///        with the condition that Plus(x, 0) = x.
-  /// @param[in] x0 Variable.
-  /// @param[in] Delta_Chi Perturbation.
-  /// @param[out] x0_plus_Delta Perturbed x.
-  virtual void plus(const double* x0, const double* Delta_Chi,
-                    double* x0_plus_Delta) const
-  {
-    HomogeneousPointLocalParameterization::plus(x0, Delta_Chi, x0_plus_Delta);
-  }
+    // Delta_Chi=x0_plus_Delta[-]x0
+    /// \brief Computes the minimal difference between a variable x and a
+    ///        perturbed variable x_plus_delta
+    /// @param[in] x0 Variable.
+    /// @param[in] x0_plus_Delta Perturbed variable.
+    /// @param[out] Delta_Chi Minimal difference.
+    /// \return True on success.
+    virtual void minus(const double* x0,
+                       const double* x0_plus_Delta,
+                       double* Delta_Chi) const {
+        HomogeneousPointLocalParameterization::minus(x0, x0_plus_Delta,
+                                                     Delta_Chi);
+    }
 
-  /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  /// @param[in] x0 Variable.
-  /// @param[out] jacobian The Jacobian.
-  virtual void plusJacobian(const double* x0, double* jacobian) const
-  {
-    HomogeneousPointLocalParameterization::plusJacobian(x0, jacobian);
-  }
+    /// \brief Computes the Jacobian from minimal space to naively
+    ///        overparameterised space as used by ceres.
+    /// @param[in] x0 Variable.
+    /// @param[out] jacobian the Jacobian (dimension minDim x dim).
+    /// \return True on success.
+    virtual void liftJacobian(const double* x0, double* jacobian) const {
+        HomogeneousPointLocalParameterization::liftJacobian(x0, jacobian);
+    }
 
-  // Delta_Chi=x0_plus_Delta[-]x0
-  /// \brief Computes the minimal difference between a variable x and a
-  ///        perturbed variable x_plus_delta
-  /// @param[in] x0 Variable.
-  /// @param[in] x0_plus_Delta Perturbed variable.
-  /// @param[out] Delta_Chi Minimal difference.
-  /// \return True on success.
-  virtual void minus(const double* x0, const double* x0_plus_Delta,
-                     double* Delta_Chi) const
-  {
-    HomogeneousPointLocalParameterization::minus(x0, x0_plus_Delta, Delta_Chi);
-  }
-
-  /// \brief Computes the Jacobian from minimal space to naively
-  ///        overparameterised space as used by ceres.
-  /// @param[in] x0 Variable.
-  /// @param[out] jacobian the Jacobian (dimension minDim x dim).
-  /// \return True on success.
-  virtual void liftJacobian(const double* x0, double* jacobian) const
-  {
-    HomogeneousPointLocalParameterization::liftJacobian(x0, jacobian);
-  }
-
-  /// @brief Return parameter block type as string
-  virtual std::string typeInfo() const
-  {
-    return "HomogeneousPointParameterBlock";
-  }
+    /// @brief Return parameter block type as string
+    virtual std::string typeInfo() const {
+        return "HomogeneousPointParameterBlock";
+    }
 
  private:
-  Eigen::Vector4d estimate_;
-  bool initialized_;  ///< Whether or not the 3d position is considered initialised.
+    Eigen::Vector4d estimate_;
+    bool initialized_;  ///< Whether or not the 3d position is considered
+                        ///initialised.
 };
 
 }  // namespace ceres_backend

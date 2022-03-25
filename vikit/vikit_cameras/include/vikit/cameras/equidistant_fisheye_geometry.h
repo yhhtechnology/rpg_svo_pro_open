@@ -7,19 +7,21 @@ namespace vk {
 namespace cameras {
 
 // Equidistant fisheye geometry is strongly typed to enforce mask.
-class EquidistantFisheyeGeometry :
-    public CameraGeometry<EquidistantFisheyeProjection>
-{
+class EquidistantFisheyeGeometry
+    : public CameraGeometry<EquidistantFisheyeProjection> {
  public:
-  EquidistantFisheyeGeometry(
-      const int width, const int height, const double focal_length,
-      const Eigen::Vector2d& principal_point, const double radius);
+    EquidistantFisheyeGeometry(const int width,
+                               const int height,
+                               const double focal_length,
+                               const Eigen::Vector2d& principal_point,
+                               const double radius);
 
-  EquidistantFisheyeGeometry(
-      const int width, const int height,
-      const EquidistantFisheyeProjection& projection, const double radius);
+    EquidistantFisheyeGeometry(const int width,
+                               const int height,
+                               const EquidistantFisheyeProjection& projection,
+                               const double radius);
 
-  virtual ~EquidistantFisheyeGeometry() = default;
+    virtual ~EquidistantFisheyeGeometry() = default;
 };
 
 }  // namespace cameras

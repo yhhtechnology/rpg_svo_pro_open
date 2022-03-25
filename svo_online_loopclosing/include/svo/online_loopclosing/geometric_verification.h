@@ -39,8 +39,7 @@
 // BoW
 #include "svo/online_loopclosing/bow.h"
 
-namespace svo
-{
+namespace svo {
 /* Function featureMatchingFast
  * Takes unmatched feature descriptor vectors as well as node information from
  * bag-of-words
@@ -52,11 +51,13 @@ void featureMatchingFast(const std::vector<cv::Mat>& feature_vec1,
                          const std::vector<cv::Mat>& feature_vec2,
                          const std::vector<cv::Mat>& feature_vec3,
                          const std::vector<cv::Mat>& feature_vec4,
-                         cv::Mat& svo_feature_mat1, cv::Mat& svo_feature_mat2,
+                         cv::Mat& svo_feature_mat1,
+                         cv::Mat& svo_feature_mat2,
                          const std::vector<int>& node_id1,
                          const std::vector<int>& node_id2,
                          const std::vector<int>& node_id3,
-                         const std::vector<int>& node_id4, const int dist_th,
+                         const std::vector<int>& node_id4,
+                         const int dist_th,
                          Eigen::MatrixXd* match_indices);
 
 /* Function geometricVerification
@@ -70,10 +71,12 @@ void geometricVerification(const std::vector<cv::Point2f>& keypoints1,
                            const BearingVecs& svo_bearingvector1,
                            const BearingVecs& svo_bearingvector2,
                            const Eigen::MatrixXd& match_indices,
-                           const cv::Mat& K, const Eigen::VectorXd& dist_par,
+                           const cv::Mat& K,
+                           const Eigen::VectorXd& dist_par,
                            const int& bow_featurevec1_size,
                            const int& bow_featurevec2_size,
-                           const bool& use_open_gv, cv::Mat* inliers,
+                           const bool& use_open_gv,
+                           cv::Mat* inliers,
                            std::vector<cv::Point2f>* keypoints_matched1,
                            std::vector<cv::Point2f>* keypoints_matched2,
                            std::vector<cv::Point2f>* keypoints_matched1_udist,
@@ -84,10 +87,12 @@ void geometricVerification(const std::vector<cv::Point2f>& keypoints1,
  * Takes Fundamental matrix as well as intrinsic calibration matrix as input
  * and provides the relative pose between two frames. */
 
-void getRelativePose(const cv::Mat& eMatrix, const cv::Mat& K,
+void getRelativePose(const cv::Mat& eMatrix,
+                     const cv::Mat& K,
                      const std::vector<cv::Point2f>& keypoints_matched1,
                      const std::vector<cv::Point2f>& keypoints_matched2,
-                     cv::Mat* inliers, Eigen::MatrixXd* T);
+                     cv::Mat* inliers,
+                     Eigen::MatrixXd* T);
 
 /* Function getScale
  * Finds the scale of relative pose between two frames.
@@ -102,7 +107,8 @@ float getScaleCL(const std::vector<cv::Point2f>& keypoints1,
                  const std::vector<cv::Point3f>& landmarks2,
                  const std::vector<int>& track_IDs1,
                  const std::vector<int>& track_IDs2,
-                 const cv::Mat& cam_pose_current, const cv::Mat& K,
+                 const cv::Mat& cam_pose_current,
+                 const cv::Mat& K,
                  const Eigen::MatrixXd& relative_pose,
                  const float mindist_thresh = 0.3);
 
@@ -112,14 +118,17 @@ float getScaleCL(const std::vector<cv::Point2f>& keypoints1,
  * parameter th, defines the threshold for the fraction of common landmarks */
 
 bool commonLandMarkCheck(const std::vector<int>& track_IDs1,
-                         const std::vector<int>& track_IDs2, const double th);
+                         const std::vector<int>& track_IDs2,
+                         const double th);
 
 float getScaleMK(const std::vector<cv::Point2f>& keypoints_matched1,
                  const std::vector<cv::Point2f>& keypoints_matched2,
                  const std::vector<cv::Point3f>& landmarks1,
                  const std::vector<cv::Point3f>& landmarks2,
-                 const Eigen::MatrixXd& match_indices, const cv::Mat& inliers,
-                 const cv::Mat& cam_pose, const cv::Mat& K,
+                 const Eigen::MatrixXd& match_indices,
+                 const cv::Mat& inliers,
+                 const cv::Mat& cam_pose,
+                 const cv::Mat& K,
                  const Eigen::MatrixXd& relative_pose,
                  const int num_bow_features);
 }  // namespace svo

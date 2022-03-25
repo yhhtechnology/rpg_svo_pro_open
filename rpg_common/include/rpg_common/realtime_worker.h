@@ -7,52 +7,40 @@
 namespace rpg_common {
 
 template <typename DataType>
-class RealtimeWorker
-{
+class RealtimeWorker {
  public:
-  RealtimeWorker() : thread_(&RealtimeWorker<DataType>::workLoop, this) {}
+    RealtimeWorker() : thread_(&RealtimeWorker<DataType>::workLoop, this) {}
 
-  virtual ~RealtimeWorker()
-  {
-    shutdown();
-  }
+    virtual ~RealtimeWorker() { shutdown(); }
 
-  void addTask(const DataType& item)
-  {
-    queue_.push(item);
-  }
+    void addTask(const DataType& item) { queue_.push(item); }
 
-  void shutdown()
-  {
-    if (!thread_.joinable())
-    {
-      LOG(WARNING) << "Redundant shutdown call of real-time worker!";
-      return;
+    void shutdown() {
+        if (!thread_.joinable()) {
+            LOG(WARNING) << "Redundant shutdown call of real-time worker!";
+            return;
+        }
+        queue_.shutdown();
+        thread_.join();
     }
-    queue_.shutdown();
-    thread_.join();
-  }
 
-  void printBacklogWarningsWithTag(const std::string& tag)
-  {
-    queue_.printBacklogWarningsWithTag(
-        "Queue of worker with tag \"" + tag + "\"");
-  }
+    void printBacklogWarningsWithTag(const std::string& tag) {
+        queue_.printBacklogWarningsWithTag("Queue of worker with tag \"" + tag +
+                                           "\"");
+    }
 
  private:
-  virtual void process(const DataType& item) = 0;
+    virtual void process(const DataType& item) = 0;
 
-  void workLoop()
-  {
-    DataType item;
-    while (queue_.skipToLatest(&item))
-    {
-      process(item);
+    void workLoop() {
+        DataType item;
+        while (queue_.skipToLatest(&item)) {
+            process(item);
+        }
     }
-  }
 
-  ThreadSafeQueue<DataType> queue_;
-  std::thread thread_;
+    ThreadSafeQueue<DataType> queue_;
+    std::thread thread_;
 };
 
 }  // namespace rpg_common

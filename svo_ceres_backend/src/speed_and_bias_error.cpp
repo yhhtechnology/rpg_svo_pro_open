@@ -5,7 +5,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -45,78 +45,79 @@ namespace ceres_backend {
 
 // Construct with measurement and information matrix
 SpeedAndBiasError::SpeedAndBiasError(const SpeedAndBias& measurement,
-                                     const information_t& information)
-{
-  setMeasurement(measurement);
-  setInformation(information);
+                                     const information_t& information) {
+    setMeasurement(measurement);
+    setInformation(information);
 }
 
 // Construct with measurement and variance.
 SpeedAndBiasError::SpeedAndBiasError(const SpeedAndBias& measurement,
                                      double speed_variance,
                                      double gyr_bias_variance,
-                                     double acc_bias_variance)
-{
-  setMeasurement(measurement);
+                                     double acc_bias_variance) {
+    setMeasurement(measurement);
 
-  DEBUG_CHECK_NE(speed_variance, 0.0);
-  DEBUG_CHECK_NE(gyr_bias_variance, 0.0);
-  DEBUG_CHECK_NE(acc_bias_variance, 0.0);
-  information_t information;
-  information.setZero();
-  information.topLeftCorner<3, 3>() =
-      Eigen::Matrix3d::Identity() * 1.0 / speed_variance;
-  information.block<3, 3>(3, 3) =
-      Eigen::Matrix3d::Identity() * 1.0 / gyr_bias_variance;
-  information.bottomRightCorner<3, 3>() =
-      Eigen::Matrix3d::Identity() * 1.0 / acc_bias_variance;
+    DEBUG_CHECK_NE(speed_variance, 0.0);
+    DEBUG_CHECK_NE(gyr_bias_variance, 0.0);
+    DEBUG_CHECK_NE(acc_bias_variance, 0.0);
+    information_t information;
+    information.setZero();
+    information.topLeftCorner<3, 3>() =
+        Eigen::Matrix3d::Identity() * 1.0 / speed_variance;
+    information.block<3, 3>(3, 3) =
+        Eigen::Matrix3d::Identity() * 1.0 / gyr_bias_variance;
+    information.bottomRightCorner<3, 3>() =
+        Eigen::Matrix3d::Identity() * 1.0 / acc_bias_variance;
     setInformation(information);
 }
 
 // Set the information.
-void SpeedAndBiasError::setInformation(const information_t& information)
-{
-  information_ = information;
-  // perform the Cholesky decomposition on order to obtain the correct error weighting
-  Eigen::LLT<information_t> lltOfInformation(information_);
-  square_root_information_ = lltOfInformation.matrixL().transpose();
+void SpeedAndBiasError::setInformation(const information_t& information) {
+    information_ = information;
+    // perform the Cholesky decomposition on order to obtain the correct error
+    // weighting
+    Eigen::LLT<information_t> lltOfInformation(information_);
+    square_root_information_ = lltOfInformation.matrixL().transpose();
 }
 
 // This evaluates the error term and additionally computes the Jacobians.
-bool SpeedAndBiasError::Evaluate(double const* const * parameters,
-                                 double* residuals, double** jacobians) const
-{
-  return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, nullptr);
+bool SpeedAndBiasError::Evaluate(double const* const* parameters,
+                                 double* residuals,
+                                 double** jacobians) const {
+    return EvaluateWithMinimalJacobians(parameters, residuals, jacobians,
+                                        nullptr);
 }
 
 // This evaluates the error term and additionally computes
 // the Jacobians in the minimal internal representation.
 bool SpeedAndBiasError::EvaluateWithMinimalJacobians(
-    double const* const * parameters, double* residuals, double** jacobians,
-    double** jacobians_minimal) const
-{
-  // compute error
-  Eigen::Map<const SpeedAndBias> estimate(parameters[0]);
-  SpeedAndBias error = measurement_ - estimate;
+    double const* const* parameters,
+    double* residuals,
+    double** jacobians,
+    double** jacobians_minimal) const {
+    // compute error
+    Eigen::Map<const SpeedAndBias> estimate(parameters[0]);
+    SpeedAndBias error = measurement_ - estimate;
 
-  // weigh it
-  Eigen::Map<Eigen::Matrix<double, 9, 1> > weighted_error(residuals);
-  weighted_error = square_root_information_ * error;
+    // weigh it
+    Eigen::Map<Eigen::Matrix<double, 9, 1> > weighted_error(residuals);
+    weighted_error = square_root_information_ * error;
 
-  // compute Jacobian - this is rather trivial in this case...
-  if (jacobians != nullptr && jacobians[0] != nullptr)
-  {
-    Eigen::Map<Eigen::Matrix<double, 9, 9, Eigen::RowMajor> > J0(jacobians[0]);
-    J0 = -square_root_information_ * Eigen::Matrix<double, 9, 9>::Identity();
-  }
-  if (jacobians_minimal != nullptr && jacobians_minimal[0] != nullptr)
-  {
-    Eigen::Map<Eigen::Matrix<double, 9, 9, Eigen::RowMajor> >
-        J0min(jacobians_minimal[0]);
-    J0min = -square_root_information_ * Eigen::Matrix<double, 9, 9>::Identity();
-  }
+    // compute Jacobian - this is rather trivial in this case...
+    if (jacobians != nullptr && jacobians[0] != nullptr) {
+        Eigen::Map<Eigen::Matrix<double, 9, 9, Eigen::RowMajor> > J0(
+            jacobians[0]);
+        J0 =
+            -square_root_information_ * Eigen::Matrix<double, 9, 9>::Identity();
+    }
+    if (jacobians_minimal != nullptr && jacobians_minimal[0] != nullptr) {
+        Eigen::Map<Eigen::Matrix<double, 9, 9, Eigen::RowMajor> > J0min(
+            jacobians_minimal[0]);
+        J0min =
+            -square_root_information_ * Eigen::Matrix<double, 9, 9>::Identity();
+    }
 
-  return true;
+    return true;
 }
 
 }  // namespace ceres_backend
